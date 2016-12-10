@@ -22,6 +22,7 @@
 
 #include "GatorCalibFitters.h"
 #include "screenfncs.h"
+#include "misc.h"
 
 using namespace std;
 

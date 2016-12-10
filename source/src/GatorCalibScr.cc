@@ -1,5 +1,6 @@
 #include <vector>
 #include <string>
+#include <sstream>
 
 #include <TROOT.h>
 #include <TFile.h>
@@ -30,8 +31,12 @@ int GatorCalibScript(string calibset, string configfile, bool recreate)
 	}
 	
 	//Search for the file containing the path to the calibration archive
-	if(string(GatorSystem.at(GatorSystem.length()-1))!=string("/")) GatorSystem += "/";
-	string archivepathfile = GatorSystem + string("etc/CalibArchive.conf");
+	string archivepathfile;
+	if( GatorSystem.at(GatorSystem.length()-1) != '/' ){
+		archivepathfile = GatorSystem + string("/etc/CalibArchive.conf");
+	}else{
+		archivepathfile = GatorSystem + string("etc/CalibArchive.conf");
+	}
 	
 	string archivedir("");
 	if(!fexist(archivepathfile)){
@@ -40,7 +45,7 @@ int GatorCalibScript(string calibset, string configfile, bool recreate)
 	}else{
 		stringstream line; line.str("");
 		ifstream infile(archivepathfile.c_str());
-		if(infile, archivedir){
+		if(getline(infile, archivedir)){
 			line << archivedir;
 			line >> archivedir;
 		}

@@ -44,6 +44,6 @@ using namespace std;
 
 //Only for this functin the definition is made in the header
 bool fexist(string filename);
-string getEnvVar( string const & key ) const;
+string getEnvVar( string const & key );
 
 #endif
