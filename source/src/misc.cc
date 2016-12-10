@@ -42,3 +42,9 @@ bool fexist(string filename){
 	ifstream infile(filename.c_str());
 	return infile;
 }
+
+string getEnvVar( string const & key ) const
+{
+    char * val = getenv( key.c_str() );
+    return val == NULL ? string("") : string(val);
+}

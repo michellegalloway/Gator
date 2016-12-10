@@ -6,6 +6,7 @@
 #include "GatorStructs.h"
 #include "GatorCounter.hh"
 #include "screenfncs.h"
+#include "misc.h"
 
 
 class GatorDataLoader: public virtual GatorCounter{

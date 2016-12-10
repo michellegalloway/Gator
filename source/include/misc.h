@@ -1,6 +1,7 @@
-#ifndef SCREENFNCS_H
-#define SCREENFNCS_H
+#ifndef MISCFNCS_H
+#define MISCFNCS_H
 
+#include <cstdlib>
 #include <string>
 #include <fstream>
 #include <iostream>
@@ -41,15 +42,8 @@
 
 using namespace std;
 
-TH1D* loadSPE(const char* dir, double& aqtime);
-TH1D* loadSingleSPE(const char* name, double& aqtime);
-TH1D* loadSpe(const char* dir, double& aqtime);
-
-string formatdigits1(double var, double var_err, int dig = 2);
-
-string formatdigits2(double var, int dig = 3);
-
-TH1D* convert_histo_ENR(TH1D* MCAspect,const char* calibdir);
-
+//Only for this functin the definition is made in the header
+bool fexist(string filename);
+string getEnvVar( string const & key ) const;
 
 #endif

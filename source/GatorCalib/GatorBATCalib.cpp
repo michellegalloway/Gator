@@ -15,7 +15,7 @@
 #include "GatorStructs.h"
 #include "GatorCalibFunc.h"
 #include "GatorCalibScr.h"
-//#include "GatorDataLoader.h"
+#include "misc.h"
 
 using namespace std;
 
@@ -24,7 +24,6 @@ void usage();
 extern TApplication* theApp=NULL;
 
 int main(int argc, char* argv[]){
-	
 	
 	int mickey = 0;
 	char *mouse[10];

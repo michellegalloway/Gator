@@ -1,7 +1,7 @@
 #General Stuff (Paths)
 cmake_minimum_required(VERSION 2.8.8 FATAL_ERROR)
 
-option(BUILD_SAMPLEANALYSIS "Build the sampleanalysis program" OFF)
+option(BUILD_SAMPLEANALYSIS "Build the sampleanalysis program" ON)
 option(BUILD_GATORCALIB "Build the Gator calibration program with BAT toolkit" ON)
 
 

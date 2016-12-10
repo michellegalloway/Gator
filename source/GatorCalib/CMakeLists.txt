@@ -3,7 +3,7 @@
 cmake_minimum_required(VERSION 2.8.8 FATAL_ERROR)
 project(GatorCalib)
 
-set(CMAKE_INSTALL_PREFIX $ENV{HOME}/PhD/Gator)
+set(CMAKE_INSTALL_PREFIX $ENV{GATOR_SYS})
 
 include_directories(${PROJECT_SOURCE_DIR}/../include)
 include_directories($ENV{BATINSTALLDIR}/include)
@@ -25,6 +25,9 @@ set(_sources_gatorcalib
   ${PROJECT_SOURCE_DIR}/../src/GatorCalibScr.cc
   ${PROJECT_SOURCE_DIR}/../src/GatorCalibFunc.cc
   ${PROJECT_SOURCE_DIR}/../src/GatorCalibFitters.cc
+  )
+
+set(_sources_general
   ${PROJECT_SOURCE_DIR}/../src/loadSPE.cc
   ${PROJECT_SOURCE_DIR}/../src/convert_histo_ENR.cc
   ${PROJECT_SOURCE_DIR}/../src/formatdigits.cc
@@ -43,10 +46,10 @@ MESSAGE(STATUS "ROOT_LIBRARIES: " ${ROOT_LIBRARIES})
 MESSAGE(STATUS "  ")
 MESSAGE(STATUS "BATLIBS: " ${BATLIBS})
 
-add_executable(GatorBATcalib GatorBATCalib.cpp ${_sources_gatorcalib})
+add_executable(GatorBATcalib GatorBATCalib.cpp ${_sources_gatorcalib} ${_sources_general})
 target_link_libraries(GatorBATcalib ${ROOT_LIBRARIES} ${BATLIBS})
 
-add_executable(GatorFinalCalib GatorFinalCalib.cpp ${_sources_gatorcalib})
+add_executable(GatorFinalCalib GatorFinalCalib.cpp ${_sources_gatorcalib} ${_sources_general})
 target_link_libraries(GatorFinalCalib ${ROOT_LIBRARIES} ${BATLIBS})
 
 

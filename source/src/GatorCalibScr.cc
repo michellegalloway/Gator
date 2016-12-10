@@ -14,7 +14,7 @@
 #include <BAT/BCHistogramFitter.h>
 
 #include "screenfncs.h"
-#include "GatorStructs.h"
+#include "misc.h"
 #include "GatorCalibFunc.h"
 //#include "GatorLoadData.h"
 
@@ -23,8 +23,29 @@ using namespace std;
 
 int GatorCalibScript(string calibset, string configfile, bool recreate)
 {
-	//const string archivedir("/home/atp/fpiastra/Gator/calibrations/archive/");
-	const string archivedir("/Users/francesco/PhD/Gator/calibrations/archive/");
+	const string GatorSystem = getEnvVar("GATOR_SYS");
+	if(GatorSystem==string("")){
+		cerr << "\n\nERROR --> Environment variable \"GATOR_SYS\" is not set cannot continue.\n" << endl;
+		return -1;
+	}
+	
+	//Search for the file containing the path to the calibration archive
+	if(string(GatorSystem.at(GatorSystem.length()-1))!=string("/")) GatorSystem += "/";
+	string archivepathfile = GatorSystem + string("etc/CalibArchive.conf");
+	
+	string archivedir("");
+	if(!fexist(archivepathfile)){
+		cerr << "\n\nERROR --> Cannot open/find file <" << archivepathfile << ">\n" << endl;
+		return -2;
+	}else{
+		stringstream line; line.str("");
+		ifstream infile(archivepathfile.c_str());
+		if(infile, archivedir){
+			line << archivedir;
+			line >> archivedir;
+		}
+	}
+	
 	
 	string calibdir = archivedir + calibset + string("/");
 	
