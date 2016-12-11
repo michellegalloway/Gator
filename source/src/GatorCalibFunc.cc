@@ -133,7 +133,7 @@ bool doFit(TH1D* MCAhisto, CalibLine& line)
 	ff_MCA -> SetParLimits(0,line.MCAlowch,line.MCAupch);
 	ff_MCA -> SetParLimits(1,0.,2*line.ampl); //Gaussian strenght
 	//ff_MCA -> SetParLimits(2,0.,3*line.ampl); //Tail strenght
-	//ff_MCA -> SetParLimits(2,0.,1.); //Tail ratio
+	ff_MCA -> SetParLimits(2,0.,10.); //Tail ratio
 	ff_MCA -> SetParLimits(3,0,2.5*line.sigma);
 	ff_MCA -> SetParLimits(4,0.,10*line.beta);
 	ff_MCA -> SetParLimits(5,0.,5*line.step);

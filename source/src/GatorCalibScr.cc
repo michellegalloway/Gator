@@ -49,6 +49,8 @@ int GatorCalibScript(string calibset, string configfile, bool recreate)
 			line << archivedir;
 			line >> archivedir;
 		}
+
+		if(archivedir.at(archivedir.length()-1) != '/' ) archivedir = archivedir + string("/");
 	}
 	
 	
