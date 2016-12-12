@@ -143,36 +143,42 @@ bool doFit(TH1D* MCAhisto, CalibLine& line)
 	
 	BCLog::SetLogLevel(BCLog::debug);
 	
-	BCHistogramFitter *histofitter = new BCHistogramFitter(tmphisto, ff_MCA);
+	BCHistogramFitter *histofitter = new BCHistogramFitter(*((TH1*)tmphisto), *ff_MCA);
 	
 	// set options for MCMC
 	//histofitter -> MCMCSetFlagPreRun (false);
 	//histofitter->MCMCSetPrecision(BCEngineMCMC::kLow);
 	//histofitter->SetMarginalizationMethod(BCIntegrate::kMargMetropolis);
 	//histofitter->MCMCSetNIterationsPreRunMin(100000);
-	histofitter->MCMCSetNIterationsRun(100000);
+	//histofitter->MCMCSetNIterationsRun(100000);
 	
 	
 	//set initial value of parameters
 	vector<double> paramsval;
 	
 	cout <<"\nMean init value: " << line.mean << endl;
-	cout <<"\tLimits: (" << histofitter->GetParameter("Mean")->GetLowerLimit() << " , " << histofitter->GetParameter("Mean")->GetUpperLimit() << ")" << endl;
-	cout <<"\nAmpl init value: " << line.ampl << endl;
-	cout <<"\tLimits: (" << histofitter->GetParameter("Ampl")->GetLowerLimit() << " , " << histofitter->GetParameter("Ampl")->GetUpperLimit() << ")" << endl;
-	cout <<"\nTail init value: " << line.tail << endl;
-	cout <<"\tLimits: (" << histofitter->GetParameter("Tail")->GetLowerLimit() << " , " << histofitter->GetParameter("Tail")->GetUpperLimit() << ")" << endl;
-	cout <<"\nSigma init value: " << line.sigma << endl;
-	cout <<"\tLimits: (" << histofitter->GetParameter("Sigma")->GetLowerLimit() << " , " << histofitter->GetParameter("Sigma")->GetUpperLimit() << ")" << endl;
-	cout <<"\nBeta init value: " << line.beta << endl;
-	cout <<"\tLimits: (" << histofitter->GetParameter("Beta")->GetLowerLimit() << " , " << histofitter->GetParameter("Beta")->GetUpperLimit() << ")" << endl;
-	cout <<"\nStep init value: " << line.step << endl;
-	cout <<"\tLimits: (" << histofitter->GetParameter("Step")->GetLowerLimit() << " , " << histofitter->GetParameter("Step")->GetUpperLimit() << ")" << endl;
-	cout <<"\nConstant init value: " << line.cost << endl;
-	cout <<"\tLimits: (" << histofitter->GetParameter("Constant")->GetLowerLimit() << " , " << histofitter->GetParameter("Constant")->GetUpperLimit() << ")" << endl;
+	cout <<"\tLimits: (" << histofitter->GetParameter("Mean").GetLowerLimit() << " , " << histofitter->GetParameter("Mean").GetUpperLimit() << ")" << endl;
 	
-	int nPars = paramsval.size();
-	int nChains = histofitter->MCMCGetNChains();//This depends on the precision
+	cout <<"\nAmpl init value: " << line.ampl << endl;
+	cout <<"\tLimits: (" << histofitter->GetParameter("Ampl").GetLowerLimit() << " , " << histofitter->GetParameter("Ampl").GetUpperLimit() << ")" << endl;
+	
+	cout <<"\nTail init value: " << line.tail << endl;
+	cout <<"\tLimits: (" << histofitter->GetParameter("Tail").GetLowerLimit() << " , " << histofitter->GetParameter("Tail").GetUpperLimit() << ")" << endl;
+	
+	cout <<"\nSigma init value: " << line.sigma << endl;
+	cout <<"\tLimits: (" << histofitter->GetParameter("Sigma").GetLowerLimit() << " , " << histofitter->GetParameter("Sigma").GetUpperLimit() << ")" << endl;
+	
+	cout <<"\nBeta init value: " << line.beta << endl;
+	cout <<"\tLimits: (" << histofitter->GetParameter("Beta").GetLowerLimit() << " , " << histofitter->GetParameter("Beta").GetUpperLimit() << ")" << endl;
+	
+	cout <<"\nStep init value: " << line.step << endl;
+	cout <<"\tLimits: (" << histofitter->GetParameter("Step").GetLowerLimit() << " , " << histofitter->GetParameter("Step").GetUpperLimit() << ")" << endl;
+	
+	cout <<"\nConstant init value: " << line.cost << endl;
+	cout <<"\tLimits: (" << histofitter->GetParameter("Constant").GetLowerLimit() << " , " << histofitter->GetParameter("Constant").GetUpperLimit() << ")" << endl;
+	
+	
+	int nChains = histofitter->GetNChains();//This depends on the precision
 	
 	for(int chain = 0; chain<nChains; chain++){
 		paramsval.push_back(line.mean);
@@ -183,31 +189,34 @@ bool doFit(TH1D* MCAhisto, CalibLine& line)
 		paramsval.push_back(line.step);
 		paramsval.push_back(line.cost);
 	}
-	histofitter->MCMCSetInitialPositions(paramsval);
+	int nPars = paramsval.size();
+	
+	
+	histofitter->SetInitialPositions(paramsval);
 	
 	
 	histofitter->Fit();
 	
-	line.mean = histofitter->GetBestFitParameter(0);
-	line.mean_err = histofitter->GetBestFitParameterError(0);
-	line.ampl = histofitter->GetBestFitParameter(1);
-	line.ampl_err = histofitter->GetBestFitParameterError(1);
-	line.tail = histofitter->GetBestFitParameter(2);
-	line.tail_err = histofitter->GetBestFitParameterError(2);
+	line.mean = (histofitter->GetBestFitParameters()).at(0);
+	line.mean_err = (histofitter->GetBestFitParameterErrors()).at(0);
+	line.ampl = (histofitter->GetBestFitParameters()).at(1);
+	line.ampl_err = (histofitter->GetBestFitParameterErrors()).at(1);
+	line.tail = (histofitter->GetBestFitParameters()).at(2);
+	line.tail_err = (histofitter->GetBestFitParameterErrors()).at(2);
 	//line.ratio = histofitter->GetBestFitParameter(2);
 	//line.ratio_err = histofitter->GetBestFitParameterError(2);
-	line.sigma = histofitter->GetBestFitParameter(3);
-	line.sigma_err = histofitter->GetBestFitParameterError(3);
-	line.beta = histofitter->GetBestFitParameter(4);
-	line.beta_err = histofitter->GetBestFitParameterError(4);
-	line.step = histofitter->GetBestFitParameter(5);
-	line.step_err = histofitter->GetBestFitParameterError(5);
-	line.cost = histofitter->GetBestFitParameter(6);
-	line.cost_err = histofitter->GetBestFitParameterError(6);
+	line.sigma = (histofitter->GetBestFitParameters()).at(3);
+	line.sigma_err = (histofitter->GetBestFitParameterErrors()).at(3);
+	line.beta = (histofitter->GetBestFitParameters()).at(4);
+	line.beta_err = (histofitter->GetBestFitParameterErrors()).at(4);
+	line.step = (histofitter->GetBestFitParameters()).at(5);
+	line.step_err = (histofitter->GetBestFitParameterErrors()).at(5);
+	line.cost = (histofitter->GetBestFitParameters()).at(6);
+	line.cost_err = (histofitter->GetBestFitParameterErrors()).at(6);
 	line.p_value = histofitter->GetPValue();
 	line.p_value_ndof = histofitter->GetPValueNDoF();
 	
-	histofitter->DrawFit("", true); // draw with a legend
+	histofitter->DrawFit("HIST", false); // draw with a legend
 	
 	c1->Update();
 	
@@ -218,7 +227,7 @@ bool doFit(TH1D* MCAhisto, CalibLine& line)
 	TCanvas *c2 = new TCanvas("c2");
 	c2 -> cd();
 	
-	(histofitter->GetMarginalized("Tail","Beta"))->Draw();
+	(histofitter->GetMarginalized("Tail","Beta")).Draw();
 	
 	c2->Update();
 	

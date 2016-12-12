@@ -8,13 +8,12 @@ set(CMAKE_INSTALL_PREFIX $ENV{GATOR_SYS})
 include_directories(${PROJECT_SOURCE_DIR}/../include)
 include_directories($ENV{BATINSTALLDIR}/include)
 
-#link_directories($ENV{BATINSTALLDIR}/lib)
+link_directories($ENV{BATINSTALLDIR}/lib)
 
 set(BATLIBS
   $ENV{BATINSTALLDIR}/lib/libBAT.so
   $ENV{BATINSTALLDIR}/lib/libBATmodels.so
   $ENV{BATINSTALLDIR}/lib/libBATmtf.so
-  $ENV{BATINSTALLDIR}/lib/libBATmvc.so
 )
 
 #MESSAGE(STATUS "CMAKE_LIBRARY_PATH: ${CMAKE_LIBRARY_PATH}")
@@ -42,9 +41,9 @@ set(_sources_general
 # Add the executable, and link it to the Geant4 libraries
 #
 
-MESSAGE(STATUS "ROOT_LIBRARIES: " ${ROOT_LIBRARIES})
-MESSAGE(STATUS "  ")
-MESSAGE(STATUS "BATLIBS: " ${BATLIBS})
+#MESSAGE(STATUS "ROOT_LIBRARIES: " ${ROOT_LIBRARIES})
+#MESSAGE(STATUS "  ")
+#MESSAGE(STATUS "BATLIBS: " ${BATLIBS})
 
 add_executable(GatorBATcalib GatorBATCalib.cpp ${_sources_gatorcalib} ${_sources_general})
 target_link_libraries(GatorBATcalib ${ROOT_LIBRARIES} ${BATLIBS})
