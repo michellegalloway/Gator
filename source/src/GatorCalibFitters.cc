@@ -26,7 +26,11 @@ Double_t peakFitFunc(Double_t* x,Double_t* par){
 	S = par[5];
 	C = par[6];
 	
-	return A*( TMath::Exp( -pow((E-P)/sigma,2)/2 )/sigma + T*TMath::Exp( pow(sigma/beta,2)/2 + beta*(E-P) )*TMath::Erfc( ((E-P)*beta+pow(sigma,2) )/(sqrt(2)*sigma*beta) ) + S*TMath::Erfc((E-P)/(sqrt(2)*sigma)) ) + C;
+	double gauss = TMath::Exp( -pow((E-P)/sigma,2)/2 );
+	double tail = TMath::Exp( pow(sigma/beta,2)/2 + beta*(E-P) )*TMath::Erfc( ((E-P)*beta+pow(sigma,2) )/(sqrt(2)*sigma*beta) );
+	double step = TMath::Erfc((E-P)/(sqrt(2)*sigma));
+	
+	return A*(gauss + T*tail) + S*step + C;
 	
 	//return A*( TMath::Gaus(E,P,sigma) + R * TMath::Exp(beta*(E-P))*TMath::Erfc((E-(P-beta*sigma*sigma))/(sqrt(2)*sigma)) ) + C;
 	
