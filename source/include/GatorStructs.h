@@ -135,6 +135,9 @@ typedef struct CalibLine
 	double cost;
 	double cost_err;
 	
+	double chi2;
+	double chi2ndof;
+	
 	double p_value;
 	double p_value_ndof;
 	

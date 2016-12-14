@@ -20,6 +20,8 @@
 #include "TFitResultPtr.h"
 #include "TFitResult.h"
 
+#include "GammaLineLikelihood.hh"
+#include "GatorStructs.h"
 #include "GatorCalibFitters.h"
 #include "screenfncs.h"
 #include "misc.h"
@@ -97,7 +99,7 @@ CalibLine lineInit(string line)
 
 extern TApplication* theApp;
 
-bool doFit(TH1D* MCAhisto, CalibLine& line)
+bool doFitBAT(TH1D* MCAhisto, CalibLine& line)
 {
 	
 	//Make a copy of the ROI of the original histo and put it in a new histogram
@@ -349,5 +351,97 @@ TGraphErrors* plotResiduals(TF1* fit_pol2, TGraphErrors* grPlot, TFitResultPtr& 
 	
 	
 	return residual_gr;
+	
+}
+
+
+using Analysis::GatorCalib::GammaLineLikelihood;
+using Analysis::Param;
+
+bool doFitLL(TH1D* MCAhisto, CalibLine& line)
+{
+	
+	static GammaLineLikelihood *linelkh=NULL;
+	if(!linelkh) linelkh = new GammaLineLikelihood();
+	
+	//Make a copy of the ROI of the original histo and put it in a new histogram
+	int firstbin = MCAhisto->FindBin(line.MCAlowch);
+	int lastbin = MCAhisto->FindBin(line.MCAupch);
+	int nbins = 1 + lastbin - firstbin;
+	double xmin = MCAhisto->GetBinLowEdge(firstbin);
+	double xmax = MCAhisto->GetBinLowEdge(lastbin+1);
+	
+	stringstream ss_histoname; ss_histoname.str(""); ss_histoname << line.element << line.massN << "_" << (int)(line.litEn+0.5) << "keV" ;
+	TH1D* linehisto = new TH1D(ss_histoname.str().c_str(),";Channel;Counts",nbins,xmin,xmax);
+	//linehisto -> SetDirectory(0);
+	
+	for(int bin=firstbin; bin <=lastbin; bin++){
+		double bincenter = MCAhisto->GetBinCenter(bin);
+		linehisto->Fill(bincenter,MCAhisto->GetBinContent(bin));
+	}
+	
+	line.histo = linehisto;
+	
+	//Start with the fitting process
+	costInit(linehisto, line);
+	stepInit(linehisto, line);
+	amplInit(linehisto, line);
+	//sigmaInit(tmphisto,line);
+	
+	
+	linelkh->Init(linehisto, &line);
+	
+	linelkh->SetTrackVals();
+	linelkh->SetEngineVerb(1);
+	linelkh->SetMaxSteps(1000);
+	linelkh->SetParStepSize(0.1);
+	linelkh->MetropolisMLE();
+	linelkh->ScaleLogProbToMax();
+	
+	//This function copies also the results in the CalibLine structure
+	linelkh->Minuit2MLE();
+	
+	
+	TF1* ff_MCA = new TF1("ff_MCA", peakFitFunc, xmin, xmax, 7);
+	ff_MCA->SetParNames("Mean","Ampl","Tail","Sigma","Beta","Step","Constant");
+	//ff_MCA->SetParNames("Mean","Ampl","Ratio","Sigma","Beta","Constant");
+	
+	ff_MCA -> SetParameter(0,line.mean);
+	ff_MCA -> SetParameter(1,line.ampl); //Gaussian strenght
+	//ff_MCA -> SetParameter(2,line.ampl*line.tail); //Tail strenght
+	ff_MCA -> SetParameter(2,line.tail); //Tail ratio
+	ff_MCA -> SetParameter(3,line.sigma);
+	ff_MCA -> SetParameter(4,line.beta);
+	ff_MCA -> SetParameter(5,line.step);
+	ff_MCA -> SetParameter(6,line.cost);
+	
+	
+	linehisto->GetListOfFunctions()->AddAt(0, ff_MCA);
+	
+	
+	TCanvas *c1 = new TCanvas("c1");
+	c1->SetLogy();
+	
+	
+	c1->Update();
+	
+	if(theApp) theApp->Run(kTRUE);
+	
+	
+	string ans("");
+	while(true){
+		cout << "\nDo you want to keep this fit result for " << line.massN << "-" << line.element << " line at " << line.litEn << " keV? [y/n]\n" << "> ";
+		getline(cin,ans);
+		if(ans!=string("y")  || ans!=string("Y") || ans!=string("n") || ans!=string("N")) break;
+	}
+	
+	if(ff_MCA) delete ff_MCA;
+	if(c1) delete c1;
+	
+	if(ans==string("y") || ans==string("Y")){
+		return true;
+	}else{
+		return false;
+	}
 	
 }

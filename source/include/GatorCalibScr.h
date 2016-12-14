@@ -3,9 +3,9 @@
 
 #include <string>
 
-int GatorCalibScript(string calibset, string configfile, bool recreate=false);
+int GatorCalibScriptBAT(string calibset, string configfile, bool recreate=false);
 
-
+int GatorCalibScriptLL(string calibset, string configfile, bool recreate=false);
 
 
 #endif

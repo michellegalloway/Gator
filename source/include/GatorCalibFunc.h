@@ -19,7 +19,9 @@ vector<string>& loadConfFile(string filename);
 
 CalibLine lineInit(string line);
 
-bool doFit(TH1D* MCAhisto, CalibLine& line);
+bool doFitBAT(TH1D* MCAhisto, CalibLine& line);
+
+bool doFitLL(TH1D* MCAhisto, CalibLine& line);
 
 vector<CalibLine> LoadLinesFromTree(string datadir);
 

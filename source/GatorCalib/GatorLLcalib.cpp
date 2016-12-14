@@ -75,7 +75,7 @@ int main(int argc, char* argv[]){
 		return(-1);
 	}
 	
-	return GatorCalibScriptBAT(calibset, configfile, recreate);
+	return GatorCalibScriptLL(calibset, configfile, recreate);
 }
 
 void usage(){return;}
