@@ -7,6 +7,7 @@ set(CMAKE_INSTALL_PREFIX $ENV{GATOR_SYS})
 
 include_directories(${PROJECT_SOURCE_DIR}/../include)
 include_directories($ENV{BATINSTALLDIR}/include)
+include_directories($ENV{HOME}/include)
 
 #link_directories($ENV{BATINSTALLDIR}/lib)
 

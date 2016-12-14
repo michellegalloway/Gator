@@ -12,6 +12,8 @@
 #include "TMinuit.h"
 #include "TMath.h"
 
+#include "Minuit2/Minuit2Minimizer.h"
+#include "Math/Functor.h"
 #include "Math/DistFuncMathCore.h"
 #include "Math/DistFuncMathMore.h"
 
@@ -33,7 +35,7 @@ namespace Analysis{
 		
 			
 			//These methods resets the class to initial state. All the internal info are lost.
-			int Init(TH1D* hist, const CalibLine* line);
+			int Init(TH1D* histo, CalibLine* line);
 			
 			//Getters
 			double GetPval(vector<double> *pars);
@@ -44,20 +46,21 @@ namespace Analysis{
 			
 			int GetNDoF() const { return fNbins-fParsN; }
 			
-			double GetChi2(vector<double> *pars) const;
-			double GetChi2() const { return GetChi2(NULL); };
+			double GetChi2(vector<double> *pars);
+			double GetChi2() { return GetChi2(NULL); };
 			
-			double GetChi2NDof(vector<double> *pars) const;
-			double GetChi2NDof() const { return GetChi2NDof(NULL); };
+			double GetChi2NDof(vector<double> *pars);
+			double GetChi2NDof() { return GetChi2NDof(NULL); };
 			
 			//Setters
-			void SetParStepSize(vector<double> step);
+			void SetParStepSize(double step);
 			void SetInitPars(vector<double> parVals);
 			void SetMinuit2StepSize(double step){fMinuit2StepSize = step;};
 		
 			void MetropolisMLE();
 		
 			void Minuit2MLE(vector<double> parVal);
+			void Minuit2MLE();
 			
 			//Miscellaneous
 			//This is to scale back to ~0 the max log likelihood. Might be usefull for the numerical precision when used before than the minuit minimizer.

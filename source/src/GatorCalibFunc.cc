@@ -392,9 +392,9 @@ bool doFitLL(TH1D* MCAhisto, CalibLine& line)
 	linelkh->Init(linehisto, &line);
 	
 	linelkh->SetTrackVals();
-	linelkh->SetEngineVerb(1);
+	linelkh->SetEngineVerb(3);
 	linelkh->SetMaxSteps(1000);
-	linelkh->SetParStepSize(0.1);
+	//linelkh->SetParStepSize(0.1);
 	linelkh->MetropolisMLE();
 	linelkh->ScaleLogProbToMax();
 	
@@ -416,7 +416,7 @@ bool doFitLL(TH1D* MCAhisto, CalibLine& line)
 	ff_MCA -> SetParameter(6,line.cost);
 	
 	
-	linehisto->GetListOfFunctions()->AddAt(0, ff_MCA);
+	linehisto->GetListOfFunctions()->AddAt(ff_MCA, 0);
 	
 	
 	TCanvas *c1 = new TCanvas("c1");

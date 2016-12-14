@@ -26,7 +26,7 @@ namespace Analysis{
 	namespace GatorCalib{
 		
 		
-		GammaLineLikelihood::GammaLineLikelihood():
+		GammaLineLikelihood::GammaLineLikelihood()
 		{
 			fParsN = 7;
 			fParams = vector<Param*>(fParsN);
@@ -34,7 +34,6 @@ namespace Analysis{
 			for(unsigned iPar=0; iPar<fParsN; iPar++){
 				fParams.at(iPar)=NULL;
 			}
-			fCalibLine = NULL;
 			fInit =false;
 			fExtParStep=false;
 			fParStepSize=0.01;
@@ -49,7 +48,7 @@ namespace Analysis{
 			fPvalNDof=-1.0;
 		}
 
-		int GammaLineLikelihood::Init(TH1D* hist, const CalibLine* line)
+		int GammaLineLikelihood::Init(TH1D* histo, CalibLine* line)
 		{
 			//The class must be reset
 			if(fInit){
@@ -64,7 +63,6 @@ namespace Analysis{
 			fMinFunctor=NULL;
 			fMinuit2StepSize=0.001;
 			fLogProbScaling=0.;
-			fWriteOutput=false;
 			fPval=-1.0;
 			fPvalNDof=-1.0;
 			
@@ -96,69 +94,71 @@ namespace Analysis{
 		{
 			cout << "\nEntering in GammaLineLikelihood::DefineParameters()" << endl;
 			
-			double Val, transfVal;
+			double val, transfVal;
+			
+			Param *tmp_par;
 			
 			//Here I define the parameters
-			Param *tmp_par = new Analysis::Param("Mean");
+			tmp_par = new Analysis::Param("Mean");
 			tmp_par->SetLowerLimit(0);
 			tmp_par->SetUpperLimit(1);
 			//Transform the parameter from the (0,inf) range to the (0,1) range
-			val = line->mean;
+			val = fLine->mean;
 			transfVal = val/(1+val);
 			tmp_par->SetValue(transfVal);
 			fParams.at(0) = tmp_par;
 			
 			
-			Param *tmp_par = new Analysis::Param("Ampl");
+			tmp_par = new Analysis::Param("Ampl");
 			tmp_par->SetLowerLimit(0);
 			tmp_par->SetUpperLimit(1);
 			//Transform the parameter from the (0,inf) range to the (0,1) range
-			val = line->ampl;
+			val = fLine->ampl;
 			transfVal = val/(1+val);
 			tmp_par->SetValue(transfVal);
 			fParams.at(1) = tmp_par;
 			
-			Param *tmp_par = new Analysis::Param("Tail");
+			tmp_par = new Analysis::Param("Tail");
 			tmp_par->SetLowerLimit(0);
 			tmp_par->SetUpperLimit(1);
 			//Transform the parameter from the (0,inf) range to the (0,1) range
-			val = line->tail;
+			val = fLine->tail;
 			transfVal = val/(1+val);
 			tmp_par->SetValue(transfVal);
 			fParams.at(2) = tmp_par;
 			
-			Param *tmp_par = new Analysis::Param("Sigma");
+			tmp_par = new Analysis::Param("Sigma");
 			tmp_par->SetLowerLimit(0);
 			tmp_par->SetUpperLimit(1);
 			//Transform the parameter from the (0,inf) range to the (0,1) range
-			val = line->sigma;
+			val = fLine->sigma;
 			transfVal = val/(1+val);
 			tmp_par->SetValue(transfVal);
 			fParams.at(3) = tmp_par;
 			
-			Param *tmp_par = new Analysis::Param("Beta");
+			tmp_par = new Analysis::Param("Beta");
 			tmp_par->SetLowerLimit(0);
 			tmp_par->SetUpperLimit(1);
 			//Transform the parameter from the (0,inf) range to the (0,1) range
-			val = line->beta;
+			val = fLine->beta;
 			transfVal = val/(1+val);
 			tmp_par->SetValue(transfVal);
 			fParams.at(4) = tmp_par;
 			
-			Param *tmp_par = new Analysis::Param("Step");
+			tmp_par = new Analysis::Param("Step");
 			tmp_par->SetLowerLimit(0);
 			tmp_par->SetUpperLimit(1);
 			//Transform the parameter from the (0,inf) range to the (0,1) range
-			val = line->step;
+			val = fLine->step;
 			transfVal = val/(1+val);
 			tmp_par->SetValue(transfVal);
 			fParams.at(5) = tmp_par;
 			
-			Param *tmp_par = new Analysis::Param("Const");
+			tmp_par = new Analysis::Param("Const");
 			tmp_par->SetLowerLimit(0);
 			tmp_par->SetUpperLimit(1);
 			//Transform the parameter from the (0,inf) range to the (0,1) range
-			val = line->cost;
+			val = fLine->cost;
 			transfVal = val/(1+val);
 			tmp_par->SetValue(transfVal);
 			fParams.at(6) = tmp_par;
@@ -228,13 +228,13 @@ namespace Analysis{
 			double logprob =0;
 	
 			for(int iBin=1; iBin<=fNbins; iBin++){
-				const double xmin = fHisto->GetBinLowEdge(iBin);
-				const double xmax = fHisto->GetBinLowEdge(iBin+1);
+				double xmin = fHisto->GetBinLowEdge(iBin);
+				double xmax = fHisto->GetBinLowEdge(iBin+1);
 				
 				//Interpolate the function in the central interval and compare with the bin contents
-				const double expCounts = (peakFitFunc(&xmax, truepars) + peakFitFunc(&xmin, truepars))*(xmax-xmin)/2.;
+				double expCounts = (peakFitFunc(&xmax, truepars) + peakFitFunc(&xmin, truepars))*(xmax-xmin)/2.;
 				
-				const double obsCounts = fHisto->GetBinContent(iBin);
+				double obsCounts = fHisto->GetBinContent(iBin);
 				
 				logprob += obsCounts*log(expCounts) - expCounts;
 				
@@ -282,7 +282,7 @@ namespace Analysis{
 		}
 
 
-		void GammaLineLikelihood::Minuit2MLE(vector<double> parVal)
+		void GammaLineLikelihood::Minuit2MLE(vector<double> pars)
 		{
 			cout << "Analysis::GammaLineLikelihood::Minuit2MLE() function" << endl;
 			
@@ -324,7 +324,7 @@ namespace Analysis{
 			vector<double> truepars(fParsN);
 			for(unsigned iPar=0; iPar<fParsN; iPar++){
 				//Transform back the parameters from (0,1) interval to (0,infinity)
-				double trueparval = par.at(iPar)/(1.-par.at(iPar));
+				double trueparval = pars.at(iPar)/(1.-pars.at(iPar));
 				fMinimizer->SetVariable(iPar, fParams.at(iPar)->GetName(), trueparval, fMinuit2StepSize);
 			}
 			
@@ -350,32 +350,33 @@ namespace Analysis{
 			}
 			
 			
-			line->mean = (fMinimizer->X())[0];
-			line->mean_err = sqrt(fMinimizer->CovMatrix(0,0));
+			fLine->mean = (fMinimizer->X())[0];
+			fLine->mean_err = sqrt(fMinimizer->CovMatrix(0,0));
 			
-			line->ampl = (fMinimizer->X())[1];
-			line->ampl_err = sqrt(fMinimizer->CovMatrix(1,1));
+			fLine->ampl = (fMinimizer->X())[1];
+			fLine->ampl_err = sqrt(fMinimizer->CovMatrix(1,1));
 			
-			line->tail = (fMinimizer->X())[2];
-			line->tail_err = sqrt(fMinimizer->CovMatrix(2,2));
+			fLine->tail = (fMinimizer->X())[2];
+			fLine->tail_err = sqrt(fMinimizer->CovMatrix(2,2));
 			
-			line->sigma = (fMinimizer->X())[3];
-			line->sigma_err = sqrt(fMinimizer->CovMatrix(3,3));
+			fLine->sigma = (fMinimizer->X())[3];
+			fLine->sigma_err = sqrt(fMinimizer->CovMatrix(3,3));
 			
-			line->beta = (fMinimizer->X())[4];
-			line->beta_err = sqrt(fMinimizer->CovMatrix(4,4));
+			fLine->beta = (fMinimizer->X())[4];
+			fLine->beta_err = sqrt(fMinimizer->CovMatrix(4,4));
 			
-			line->step = (fMinimizer->X())[5];
-			line->step_err = sqrt(fMinimizer->CovMatrix(5,5));
+			fLine->step = (fMinimizer->X())[5];
+			fLine->step_err = sqrt(fMinimizer->CovMatrix(5,5));
 			
-			line->cost = (fMinimizer->X())[6];
-			line->cost_err = sqrt(fMinimizer->CovMatrix(6,6));
+			fLine->cost = (fMinimizer->X())[6];
+			fLine->cost_err = sqrt(fMinimizer->CovMatrix(6,6));
 			
-			line->chi2 = GetChi2();
-			line->chi2ndof = GetChi2NDof();
+			fLine->chi2 = GetChi2();
+			fLine->chi2ndof = GetChi2NDof();
 			
-			line->p_value = GetPValue();
-			line->p_value_ndof = GetPValueNDoF();
+			fLine->p_value = GetPval();
+			fLine->p_value_ndof = GetPvalNDof();
+			
 			//cout << "Variance of the parameter = " << fMinimizer->CovMatrix(0,0) << ". Root square = " << sqrt(fMinimizer->CovMatrix(0,0)) << endl;
 			//cout << "Error = " << (fMinimizer->Errors())[0] << endl;
 			
@@ -392,6 +393,17 @@ namespace Analysis{
 			
 			cout << "Exiting from Analysis::GammaLineLikelihood::Minuit2MLE(...) function." << endl;
 			
+			fMinimized = true;
+			
+			return;
+		}
+		
+		
+		void GammaLineLikelihood::Minuit2MLE()
+		{
+			if(!fMinimized) return;
+			
+			GammaLineLikelihood::Minuit2MLE(fMaxPar);
 			return;
 		}
 
@@ -411,13 +423,13 @@ namespace Analysis{
 
 			for(int iBin = 1; iBin <= fNbins; ++iBin) {
 				// get the number of observed events
-				const double y = fHisto->GetBinContent(ibin);
+				double y = fHisto->GetBinContent(iBin);
 				
 				// get the number of expected events using the interpolation of the function in the bin "iBin"
-				const double xMin = fHisto->GetBinLowEdge(iBin);
-				const double xMax = fHisto->GetBinLowEdge(iBin+1);
+				double xMin = fHisto->GetBinLowEdge(iBin);
+				double xMax = fHisto->GetBinLowEdge(iBin+1);
 				
-				const double yexp = ( peakFitFunc(&xMax, &(truepars.at(0))) + peakFitFunc(&xMin, &(truepars.at(0))) )*(xMax-xMin)/2.;
+				double yexp = ( peakFitFunc(&xMax, &(truepars.at(0))) + peakFitFunc(&xMin, &(truepars.at(0))) )*(xMax-xMin)/2.;
 				
 				// get the contribution from this datapoint
 				if (y == 0)
@@ -430,8 +442,8 @@ namespace Analysis{
 			logLambda *= 2.0;
 
 			//p value from chi^2 distribution, returns zero if logLambda < 0
-			fPValue = TMath::Prob( logLambda, fNbins );
-			fPValueNDoF = TMath::Prob( logLambda, GetNDoF() );
+			fPval = TMath::Prob( logLambda, fNbins );
+			fPvalNDof = TMath::Prob( logLambda, GetNDoF() );
 			
 			fPvalues = true;
 			
@@ -443,53 +455,53 @@ namespace Analysis{
 		double GammaLineLikelihood::GetPval(vector<double> *pars)
 		{
 			if(pars){
-				if(!pars->size()==fParsN) return -1.0;
+				if(pars->size()!=fParsN) return -1.0;
 				CalculatePValueLikelihood(pars);
-				return fPValue;
+				return fPval;
 			}
 			
 			if(!fPvalues) CalculatePValueLikelihood();
 			
 			if(!fPvalues) return -1.0;
 			
-			return fPValue;
+			return fPval;
 		}
 		
 		
 		double GammaLineLikelihood::GetPvalNDof(vector<double> *pars)
 		{
 			if(pars){
-				if(!pars->size()==fParsN) return -1.0;
+				if(pars->size()!=fParsN) return -1.0;
 				CalculatePValueLikelihood(pars);
-				return fPValueNDoF;
+				return fPvalNDof;
 			}
 			
 			if(!fPvalues) CalculatePValueLikelihood();
 			
 			if(!fPvalues) return -1.0;
 			
-			return fPValueNDoF;
+			return fPvalNDof;
 		}
 		
 		
-		double GetChi2(vector<double> *pars)
+		double GammaLineLikelihood::GetChi2(vector<double> *pars)
 		{
 			if(pars){
-				if(!pars->size()==fParsN) return -1.0;
+				if(pars->size()!=fParsN) return -1.0;
 				CalculatePValueLikelihood(pars);
-				if( !( (fPValueNDoF>0.0) && (<1.0) ) ) return -1.0;
-				return ROOT::Math::chisquared_quantile_c( fPValueNDoF, (double)GetNDoF() );
+				if( !( (fPvalNDof>0.0) && (fPvalNDof<1.0) ) ) return -1.0;
+				return ROOT::Math::chisquared_quantile_c( fPvalNDof, (double)GetNDoF() );
 			}
 			
 			if(!fPvalues) CalculatePValueLikelihood();
 			
-			if( !( (fPValueNDoF>0.0) && (<1.0) ) ) return -1.0;
+			if( !( (fPvalNDof>0.0) && (fPvalNDof<1.0) ) ) return -1.0;
 			
-			return ROOT::Math::chisquared_quantile_c( fPValueNDoF, (double)GetNDoF() );
+			return ROOT::Math::chisquared_quantile_c( fPvalNDof, (double)GetNDoF() );
 		}
 		
 		
-		double GetChi2NDof(vector<double> *pars) const
+		double GammaLineLikelihood::GetChi2NDof(vector<double> *pars)
 		{ 
 			if(pars){
 				if(!pars->size()==fParsN) return -1.0;
