@@ -49,4 +49,4 @@ add_executable(GatorFinalCalib GatorFinalCalib.cpp ${_sources_gatorcalib} ${_sou
 target_link_libraries(GatorFinalCalib ${ROOT_LIBRARIES} ${BATLIBS})
 
 
-install(TARGETS GatorBATcalib GatorFinalCalib DESTINATION bin)
+install(TARGETS GatorLLcalib GatorBATcalib GatorFinalCalib DESTINATION bin)
