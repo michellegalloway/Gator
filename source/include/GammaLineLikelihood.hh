@@ -10,7 +10,7 @@
 #include "TRandom.h"
 #include "TRandom3.h"
 #include "TMinuit.h"
-#include "TMath"
+#include "TMath.h"
 
 #include "Math/DistFuncMathCore.h"
 #include "Math/DistFuncMathMore.h"
