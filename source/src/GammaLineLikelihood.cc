@@ -260,15 +260,15 @@ namespace Analysis{
 		}
 
 
-		double GammaLineLikelihood::MinLogProb(const vector<double> *parVal)
+		double GammaLineLikelihood::MinLogProb(const double* parVal)
 		{
 			//This return the opposite of the LogProb used in the Minuit2 minimizer
 	
 			Analysis::GatorCalib::GammaLineLikelihood* this_ptr = static_cast<Analysis::GatorCalib::GammaLineLikelihood*>(Analysis::LikelihoodClassHolder::instance());
-	
-	
-			//vector<double> par = *parVal;
-			return -(this_ptr->LogProb(*parVal));
+			
+			vector<double> par(parVal, parVal + (this_ptr->fParsN) );
+			
+			return -( this_ptr->LogProb(par) );;
 		}
 
 
@@ -285,6 +285,7 @@ namespace Analysis{
 		void GammaLineLikelihood::Minuit2MLE(vector<double> pars)
 		{
 			cout << "Analysis::GammaLineLikelihood::Minuit2MLE() function" << endl;
+			
 			
 			if(fMinimizer){
 				delete fMinimizer;
@@ -380,20 +381,12 @@ namespace Analysis{
 			//cout << "Variance of the parameter = " << fMinimizer->CovMatrix(0,0) << ". Root square = " << sqrt(fMinimizer->CovMatrix(0,0)) << endl;
 			//cout << "Error = " << (fMinimizer->Errors())[0] << endl;
 			
-			/*
-			if(fWriteOutput){
-				fResultsOut.open("LCEResults.txt");
-				fResultsOut << "\nMinuit 2 found the minimum of parameter <" << fParams.at(0)->GetName() << ">:"  << endl;
-				fResultsOut << "MLE = " << (fMinimizer->X())[0] << endl;
-				fResultsOut << "Min value = " << fMinimizer->MinValue() << endl;
-				fResultsOut << "Variance of the parameter = " << fMinimizer->CovMatrix(0,0) << ". Root square = " << sqrt(fMinimizer->CovMatrix(0,0)) << endl;
-				fResultsOut << "Error = " << (fMinimizer->Errors())[0] << endl;
-				fResultsOut.close();
-			}*/
+			
 			
 			cout << "Exiting from Analysis::GammaLineLikelihood::Minuit2MLE(...) function." << endl;
 			
 			fMinimized = true;
+			
 			
 			return;
 		}
@@ -504,7 +497,7 @@ namespace Analysis{
 		double GammaLineLikelihood::GetChi2NDof(vector<double> *pars)
 		{ 
 			if(pars){
-				if(!pars->size()==fParsN) return -1.0;
+				if(pars->size()!=fParsN) return -1.0;
 				double chi2 = GetChi2(pars);
 				if(chi2<=0.) return -1.0;
 				return chi2/GetNDoF();

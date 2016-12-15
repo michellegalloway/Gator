@@ -76,8 +76,9 @@ namespace Analysis{
 			
 			//This computes the real likelihood must be implemented in a concrete class
 			double LogProb(const vector<double>& par);
+			
 			//This return the opposite of the LogProb used in the Minuit2 minimizer
-			static double MinLogProb(const vector<double> *parVal);
+			static double MinLogProb(const double* parVal);
 			
 			
 			void CalculatePValueLikelihood(vector<double> *pars);

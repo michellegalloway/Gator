@@ -101,7 +101,6 @@ extern TApplication* theApp;
 
 bool doFitBAT(TH1D* MCAhisto, CalibLine& line)
 {
-	
 	//Make a copy of the ROI of the original histo and put it in a new histogram
 	int firstbin = MCAhisto->FindBin(line.MCAlowch);
 	int lastbin = MCAhisto->FindBin(line.MCAupch);
