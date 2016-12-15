@@ -242,7 +242,7 @@ namespace Analysis{
 				double xmax = fHisto->GetBinLowEdge(iBin+1);
 				
 				//Interpolate the function in the central interval and compare with the bin contents
-				double expCounts = ( peakFitFunc(&xmax, &(par.at(0))) + peakFitFunc(&xmin, &(par.at(0))) )*(xmax-xmin)/2.;
+				double expCounts = ( peakFitFunc(&xmax, (double*)(&(par.at(0))) ) + peakFitFunc(&xmin, (double*)(&(par.at(0))) ) )*(xmax-xmin)/2.;
 				
 				double obsCounts = fHisto->GetBinContent(iBin);
 				
@@ -424,7 +424,7 @@ namespace Analysis{
 				double xMin = fHisto->GetBinLowEdge(iBin);
 				double xMax = fHisto->GetBinLowEdge(iBin+1);
 				
-				double yexp = ( peakFitFunc(&xMax, &(pars.at(0))) + peakFitFunc(&xMin, &(pars.at(0))) )*(xMax-xMin)/2.;
+				double yexp = ( peakFitFunc(&xMax, &(pars->at(0))) + peakFitFunc(&xMin, &(pars->at(0))) )*(xMax-xMin)/2.;
 				
 				// get the contribution from this datapoint
 				if (y == 0)
