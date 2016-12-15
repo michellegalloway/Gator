@@ -9,13 +9,26 @@ include_directories(${PROJECT_SOURCE_DIR}/../include)
 include_directories($ENV{BATINSTALLDIR}/include)
 include_directories($ENV{HOME}/include)
 
-#link_directories($ENV{BATINSTALLDIR}/lib)
+link_directories($ENV{ROOTSYS}/lib)
+link_directories($ENV{BATINSTALLDIR}/lib)
+link_directories($ENV{HOME}/lib)
+
+
+set(ROOTMORELIBS 
+  libMinuit2.so
+)
 
 set(BATLIBS
-  $ENV{BATINSTALLDIR}/lib/libBAT.so
-  $ENV{BATINSTALLDIR}/lib/libBATmodels.so
-  $ENV{BATINSTALLDIR}/lib/libBATmtf.so
-  $ENV{BATINSTALLDIR}/lib/libBATmvc.so
+  libBAT.so
+  libBATmodels.so
+  libBATmtf.so
+  libBATmvc.so
+)
+
+
+set(MYLIBS
+  libLikelihoodClass.so
+  libParam.so
 )
 
 
@@ -40,14 +53,13 @@ set(_sources_general
 #
 
 add_executable(GatorBATcalib GatorBATCalib.cpp ${_sources_gatorcalib} ${_sources_general})
-target_link_libraries(GatorBATcalib ${ROOT_LIBRARIES} ${BATLIBS})
+target_link_libraries(GatorBATcalib ${ROOT_LIBRARIES} ${BATLIBS} ${MYLIBS} ${ROOTMORELIBS})
 
 add_executable(GatorLLcalib GatorLLcalib.cpp ${_sources_gatorcalib} ${_sources_general})
-link_directories(${HOME}/lib)
-target_link_libraries(GatorLLcalib ${ROOT_LIBRARIES} ${BATLIBS} ${HOME}/lib/libLikelihoodClass.so)
+target_link_libraries(GatorLLcalib ${ROOT_LIBRARIES} ${BATLIBS} ${MYLIBS} ${ROOTMORELIBS})
 
 add_executable(GatorFinalCalib GatorFinalCalib.cpp ${_sources_gatorcalib} ${_sources_general})
-target_link_libraries(GatorFinalCalib ${ROOT_LIBRARIES} ${BATLIBS})
+target_link_libraries(GatorFinalCalib ${ROOT_LIBRARIES} ${BATLIBS} ${MYLIBS} ${ROOTMORELIBS})
 
 
 install(TARGETS GatorLLcalib GatorBATcalib GatorFinalCalib DESTINATION bin)

@@ -55,7 +55,6 @@ namespace Analysis{
 				fInit=false;
 			}
 			fHisto=NULL;
-			fLine=NULL;
 			fExtParStep=false;
 			fParStepSize=0.01;
 			fHisto=NULL;
@@ -67,6 +66,8 @@ namespace Analysis{
 			fPvalNDof=-1.0;
 			
 			
+			fLine = line;
+
 			for(unsigned iPar=0; iPar<fParsN; iPar++){
 				if( fParams.at(iPar) ){
 					delete fParams.at(iPar);
@@ -77,9 +78,9 @@ namespace Analysis{
 			int errcode = DefineParameters();
 			if(errcode!=0){
 				cerr << "GammaLineLikelihood::Init(...) --> ERROR: DefineParameters() failure!\nExiting with error code " << errcode << endl << endl;
+				fLine = NULL;
 				return(errcode);
 			}else{
-				fLine = line;
 				fHisto = histo;
 				fNbins = histo->GetNbinsX();
 			}
