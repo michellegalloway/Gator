@@ -12,6 +12,7 @@ find_package(ROOT REQUIRED)
 
 include_directories($ENV{ROOTSYS}/include)
 
+#link_directories(${HOME}/lib)
 
 #Subdirectories
 if(BUILD_SAMPLEANALYSIS)

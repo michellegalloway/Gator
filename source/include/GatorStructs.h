@@ -109,36 +109,38 @@ typedef struct ResultsStruct
 
 typedef struct CalibLine
 {
-	
 	string massN;
-	string element;
-	double litEn;
-	double litEn_err;
-	double MCAlowch;
-	double MCAupch;
+		string element;
+		double litEn;
+		double litEn_err;
+		double MCAlowch;
+		double MCAupch;
 	
-	double mean;
-	double mean_err;
-	double sigma;
-	double sigma_err;
-	double beta;
-	double beta_err;
-	double ampl;
-	double ampl_err;
-	double tail;
-	double tail_err;
-	double ratio;
-	double ratio_err;
+		double mean;
+		double mean_err;
+		double sigma;
+		double sigma_err;
+		double beta;
+		double beta_err;
+		double ampl;
+		double ampl_err;
+		double tail;
+		double tail_err;
+		double ratio;
+		double ratio_err;
 	
-	double step;
-	double step_err;
-	double cost;
-	double cost_err;
+		double step;
+		double step_err;
+		double cost;
+		double cost_err;
 	
-	double p_value;
-	double p_value_ndof;
+		double chi2;
+		double chi2ndof;
 	
-	TH1D* histo;
+		double p_value;
+		double p_value_ndof;
+	
+		TH1D* histo;
 	
 }CalibLine;
 
