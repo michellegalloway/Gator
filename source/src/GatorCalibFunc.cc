@@ -391,9 +391,9 @@ bool doFitLL(TH1D* MCAhisto, CalibLine& line)
 	linelkh->Init(linehisto, &line);
 	
 	linelkh->SetTrackVals();
-	linelkh->SetEngineVerb(3);
+	linelkh->SetEngineVerb(1);
 	linelkh->SetMaxSteps(1000);
-	//linelkh->SetParStepSize(0.1);
+	//linelkh->SetParStepSize(0.001);
 	linelkh->MetropolisMLE();
 	linelkh->ScaleLogProbToMax();
 	

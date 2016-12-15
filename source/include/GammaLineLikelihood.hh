@@ -53,7 +53,7 @@ namespace Analysis{
 			double GetChi2NDof() { return GetChi2NDof(NULL); };
 			
 			//Setters
-			void SetParStepSize(double step);
+			//void SetParStepSize(double step);
 			void SetInitPars(vector<double> parVals);
 			void SetMinuit2StepSize(double step){fMinuit2StepSize = step;};
 		

@@ -102,66 +102,72 @@ namespace Analysis{
 			//Here I define the parameters
 			tmp_par = new Analysis::Param("Mean");
 			tmp_par->SetLowerLimit(0);
-			tmp_par->SetUpperLimit(1);
+			//tmp_par->SetUpperLimit(1);
 			//Transform the parameter from the (0,inf) range to the (0,1) range
 			val = fLine->mean;
-			transfVal = val/(1+val);
-			tmp_par->SetValue(transfVal);
+			//transfVal = val/(1+val);
+			tmp_par->SetValue(val);
+			tmp_par->SetMCMCStepSize(val/100);
 			fParams.at(0) = tmp_par;
-			
 			
 			tmp_par = new Analysis::Param("Ampl");
 			tmp_par->SetLowerLimit(0);
-			tmp_par->SetUpperLimit(1);
+			//tmp_par->SetUpperLimit(1);
 			//Transform the parameter from the (0,inf) range to the (0,1) range
 			val = fLine->ampl;
-			transfVal = val/(1+val);
-			tmp_par->SetValue(transfVal);
+			//transfVal = val/(1+val);
+			tmp_par->SetValue(val);
+			tmp_par->SetMCMCStepSize(val/100);
 			fParams.at(1) = tmp_par;
 			
 			tmp_par = new Analysis::Param("Tail");
 			tmp_par->SetLowerLimit(0);
-			tmp_par->SetUpperLimit(1);
+			//tmp_par->SetUpperLimit(1);
 			//Transform the parameter from the (0,inf) range to the (0,1) range
 			val = fLine->tail;
-			transfVal = val/(1+val);
-			tmp_par->SetValue(transfVal);
+			//transfVal = val/(1+val);
+			tmp_par->SetValue(val);
+			tmp_par->SetMCMCStepSize(val/100);
 			fParams.at(2) = tmp_par;
 			
 			tmp_par = new Analysis::Param("Sigma");
 			tmp_par->SetLowerLimit(0);
-			tmp_par->SetUpperLimit(1);
+			//tmp_par->SetUpperLimit(1);
 			//Transform the parameter from the (0,inf) range to the (0,1) range
 			val = fLine->sigma;
-			transfVal = val/(1+val);
-			tmp_par->SetValue(transfVal);
+			//transfVal = val/(1+val);
+			tmp_par->SetValue(val);
+			tmp_par->SetMCMCStepSize(val/100);
 			fParams.at(3) = tmp_par;
 			
 			tmp_par = new Analysis::Param("Beta");
 			tmp_par->SetLowerLimit(0);
-			tmp_par->SetUpperLimit(1);
+			//tmp_par->SetUpperLimit(1);
 			//Transform the parameter from the (0,inf) range to the (0,1) range
 			val = fLine->beta;
-			transfVal = val/(1+val);
-			tmp_par->SetValue(transfVal);
+			//transfVal = val/(1+val);
+			tmp_par->SetValue(val);
+			tmp_par->SetMCMCStepSize(val/100);
 			fParams.at(4) = tmp_par;
 			
 			tmp_par = new Analysis::Param("Step");
 			tmp_par->SetLowerLimit(0);
-			tmp_par->SetUpperLimit(1);
+			//tmp_par->SetUpperLimit(1);
 			//Transform the parameter from the (0,inf) range to the (0,1) range
 			val = fLine->step;
-			transfVal = val/(1+val);
-			tmp_par->SetValue(transfVal);
+			//transfVal = val/(1+val);
+			tmp_par->SetValue(val);
+			tmp_par->SetMCMCStepSize(val/100);
 			fParams.at(5) = tmp_par;
 			
 			tmp_par = new Analysis::Param("Const");
 			tmp_par->SetLowerLimit(0);
-			tmp_par->SetUpperLimit(1);
+			//tmp_par->SetUpperLimit(1);
 			//Transform the parameter from the (0,inf) range to the (0,1) range
 			val = fLine->cost;
-			transfVal = val/(1+val);
-			tmp_par->SetValue(transfVal);
+			//transfVal = val/(1+val);
+			tmp_par->SetValue(val);
+			tmp_par->SetMCMCStepSize(val/100);
 			fParams.at(6) = tmp_par;
 			
 			if(fTrackVals) tmp_par->TrackVals();
@@ -171,14 +177,24 @@ namespace Analysis{
 				cout << "-> " << fParsN << " parameters defined and initialised." << endl;
 			}
 			
+			//Set the parameters step size for the MCMC algorithm
+			if(!fParSteps){
+				fParSteps = new vector<double>(fParsN);
+			}
+			for(unsigned iPar=0; iPar<fParsN; iPar++){
+				fParSteps->at(iPar) = fParams.at(iPar)->GetMCMCStepSize();
+			}
+			
+			fExtParStep=true;
+			
 			fParInit = true;
 			
 			cout << "Exiting from GammaLineLikelihood::DefineParameters()\n" << endl;
 			
 			return(0);
 		}
-
-
+		
+		/*
 		void GammaLineLikelihood::SetParStepSize(double step)
 		{
 			fParStepSize=step;
@@ -192,16 +208,16 @@ namespace Analysis{
 			
 			fExtParStep=true;
 		}
-
-
+		*/
+		
 		void GammaLineLikelihood::SetInitPars(vector<double> parVal)
 		{
 			vector<double> *initpar = new vector<double>( parVal.begin(), parVal.begin()+parVal.size() );
 			Analysis::LikelihoodClass::SetInitPars(initpar);
 			return;
 		}
-
-
+		
+		
 		vector<double> GammaLineLikelihood::SelfParInit()
 		{
 			//This function is not needed as the parameters are already initialized where they are defined
@@ -211,17 +227,10 @@ namespace Analysis{
 			}
 			return par;
 		}
-
-
+		
+		
 		double GammaLineLikelihood::LogProb(const vector<double>& par)
 		{
-			//Vector to transform back the parameters from (0,1) interval to (0,infinity)
-			static double *truepars = new double[fParsN];
-			
-			for(unsigned iPar=0; iPar<fParsN; iPar++){
-				truepars[iPar] = par.at(iPar)/(1.-par.at(iPar));
-			}
-			
 			//Calculate the log-likelihood
 			if(fEngineVerb>=4){
 				cout << "\n====> Entering in GammaLineLikelihood::LogProb(...)." << endl;
@@ -233,7 +242,7 @@ namespace Analysis{
 				double xmax = fHisto->GetBinLowEdge(iBin+1);
 				
 				//Interpolate the function in the central interval and compare with the bin contents
-				double expCounts = (peakFitFunc(&xmax, truepars) + peakFitFunc(&xmin, truepars))*(xmax-xmin)/2.;
+				double expCounts = ( peakFitFunc(&xmax, &(par.at(0))) + peakFitFunc(&xmin, &(par.at(0))) )*(xmax-xmin)/2.;
 				
 				double obsCounts = fHisto->GetBinContent(iBin);
 				
@@ -259,8 +268,8 @@ namespace Analysis{
 			fLogProbScaling = fMaxLogProb;
 			return;
 		}
-
-
+		
+		
 		double GammaLineLikelihood::MinLogProb(const double* parVal)
 		{
 			//This return the opposite of the LogProb used in the Minuit2 minimizer
@@ -271,8 +280,8 @@ namespace Analysis{
 			
 			return -( this_ptr->LogProb(par) );;
 		}
-
-
+		
+		
 		void GammaLineLikelihood::MetropolisMLE()
 		{
 			if(!fInit) return;
@@ -281,8 +290,8 @@ namespace Analysis{
 			fMinimized = true;
 			return;
 		}
-
-
+		
+		
 		void GammaLineLikelihood::Minuit2MLE(vector<double> pars)
 		{
 			cout << "Analysis::GammaLineLikelihood::Minuit2MLE() function" << endl;
@@ -323,11 +332,8 @@ namespace Analysis{
 			fMinimizer->SetFunction(*fMinFunctor);
 			
 			
-			vector<double> truepars(fParsN);
 			for(unsigned iPar=0; iPar<fParsN; iPar++){
-				//Transform back the parameters from (0,1) interval to (0,infinity)
-				double trueparval = pars.at(iPar)/(1.-pars.at(iPar));
-				fMinimizer->SetVariable(iPar, fParams.at(iPar)->GetName(), trueparval, fMinuit2StepSize);
+				fMinimizer->SetVariable(iPar, fParams.at(iPar)->GetName(), pars.at(iPar), fMinuit2StepSize);
 			}
 			
 			
@@ -400,21 +406,16 @@ namespace Analysis{
 			GammaLineLikelihood::Minuit2MLE(fMaxPar);
 			return;
 		}
-
+		
 		
 		void GammaLineLikelihood::CalculatePValueLikelihood(vector<double> *pars)
 		{
 			
 			if(!fMinimized) return;
 			
-			vector<double> truepars(fParsN);
-			for(unsigned iPar=0; iPar<fParsN; iPar++){
-				truepars.at(iPar) = fMaxPar.at(iPar)/(1.-fMaxPar.at(iPar));
-			}
-			
-			// initialize test statistic -2*lambda
+		// initialize test statistic -2*lambda
 			double logLambda = 0.0;
-
+			
 			for(int iBin = 1; iBin <= fNbins; ++iBin) {
 				// get the number of observed events
 				double y = fHisto->GetBinContent(iBin);
@@ -423,7 +424,7 @@ namespace Analysis{
 				double xMin = fHisto->GetBinLowEdge(iBin);
 				double xMax = fHisto->GetBinLowEdge(iBin+1);
 				
-				double yexp = ( peakFitFunc(&xMax, &(truepars.at(0))) + peakFitFunc(&xMin, &(truepars.at(0))) )*(xMax-xMin)/2.;
+				double yexp = ( peakFitFunc(&xMax, &(pars.at(0))) + peakFitFunc(&xMin, &(pars.at(0))) )*(xMax-xMin)/2.;
 				
 				// get the contribution from this datapoint
 				if (y == 0)
