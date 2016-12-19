@@ -98,86 +98,71 @@ int GatorCalibScriptBAT(string calibset, string configfile, bool recreate)
 	
 	t1 = new TTree("linestree","Results of the fits for each line");
 	
-	//Variables to put in tree
-	string massN;
-	string *pmassN = &massN;
-	string element;
-	string *pelement = &element;
-	double litEn;
-	double litEn_err;
-	double mean;
-	double mean_err;
-	double sigma;
-	double sigma_err;
-	double beta;
-	double beta_err;
-	double ampl;
-	double ampl_err;
-	double tail;
-	double tail_err;
-	//double ratio;
-	//double ratio_err;
-	double step;
-	double step_err;
-	double cost;
-	double cost_err;
-	double p_value;
-	double p_value_ndof;
 	
-	TH1D* p_line_histo = NULL;
+	CalibLine LinkedLineStruct;//This is to address the trees.
 	
 	
-	t1 -> Branch("massNum","string",&massN);
-	t1 -> Branch("element","string",&pelement);
-	t1 -> Branch("litEn",&litEn,"litEn/D");
-	t1 -> Branch("litEn_err",&litEn_err,"litEn_err/D");
-	t1 -> Branch("mean",&mean,"mean/D");
-	t1 -> Branch("mean_err",&mean_err,"mean_err/D");
-	t1 -> Branch("sigma",&sigma,"sigma/D");
-	t1 -> Branch("sigma_err",&sigma_err,"sigma_err/D");
-	t1 -> Branch("beta",&beta,"beta/D");
-	t1 -> Branch("beta_err",&beta_err,"beta_err/D");
-	t1 -> Branch("ampl",&ampl,"ampl/D");
-	t1 -> Branch("ampl_err",&ampl_err,"ampl_err/D");
-	t1 -> Branch("tail",&tail,"tail/D");
-	t1 -> Branch("tail_err",&tail_err,"tail_err/D");
-	//t1 -> Branch("ratio",&ratio,"ratio/D");
-	//t1 -> Branch("ratio_err",&ratio_err,"ratio_err/D");
-	t1 -> Branch("step",&step,"step/D");
-	t1 -> Branch("step_err",&step_err,"step_err/D");
-	t1 -> Branch("cost",&cost,"cost/D");
-	t1 -> Branch("cost_err",&cost_err,"cost_err/D");
-	t1 -> Branch("p_value",&p_value,"p_value/D");
-	t1 -> Branch("p_value_ndof",&p_value_ndof,"p_value_ndof/D");
+	t1 -> Branch("massNum","string",&LinkedLineStruct.massN);
+	t1 -> Branch("element","string",&LinkedLineStruct.element);
+	t1 -> Branch("litEn",&LinkedLineStruct.litEn,"litEn/D");
+	t1 -> Branch("litEn_err",&LinkedLineStruct.litEn_err,"litEn_err/D");
+	t1 -> Branch("mean",&LinkedLineStruct.mean,"mean/D");
+	t1 -> Branch("mean_err",&LinkedLineStruct.mean_err,"mean_err/D");
+	t1 -> Branch("sigma",&LinkedLineStruct.sigma,"sigma/D");
+	t1 -> Branch("sigma_err",&LinkedLineStruct.sigma_err,"sigma_err/D");
+	t1 -> Branch("beta",&LinkedLineStruct.beta,"beta/D");
+	t1 -> Branch("beta_err",&LinkedLineStruct.beta_err,"beta_err/D");
+	t1 -> Branch("ampl",&LinkedLineStruct.ampl,"ampl/D");
+	t1 -> Branch("ampl_err",&LinkedLineStruct.ampl_err,"ampl_err/D");
+	t1 -> Branch("tail",&LinkedLineStruct.tail,"tail/D");
+	t1 -> Branch("tail_err",&LinkedLineStruct.tail_err,"tail_err/D");
+	//t1 -> Branch("ratio",&LinkedLineStruct.ratio,"ratio/D");
+	//t1 -> Branch("ratio_err",&LinkedLineStruct.ratio_err,"ratio_err/D");
+	t1 -> Branch("step",&LinkedLineStruct.step,"step/D");
+	t1 -> Branch("step_err",&LinkedLineStruct.step_err,"step_err/D");
+	t1 -> Branch("cost",&LinkedLineStruct.cost,"cost/D");
+	t1 -> Branch("cost_err",&LinkedLineStruct.cost_err,"cost_err/D");
 	
-	t1 -> Branch("histo", "TH1D", &p_line_histo);
+	t1 -> Branch("chi2",&LinkedLineStruct.chi2,"chi2/D");
+	t1 -> Branch("chi2ndof",&LinkedLineStruct.chi2ndof,"chi2ndof/D");
+	
+	t1 -> Branch("p_value",&LinkedLineStruct.p_value,"p_value/D");
+	t1 -> Branch("p_value_ndof",&LinkedLineStruct.p_value_ndof,"p_value_ndof/D");
+	
+	t1 -> Branch("histo", "TH1D", &LinkedLineStruct.histo);
+	t1 -> Branch("fit", "TF1", &LinkedLineStruct.fit);
 	
 	
 	if(!recreate){
-		t1_old -> SetBranchAddress("massNum",&massN);
-		t1_old -> SetBranchAddress("element",&pelement);
-		t1_old -> SetBranchAddress("litEn",&litEn);
-		t1_old -> SetBranchAddress("litEn_err",&litEn_err);
-		t1_old -> SetBranchAddress("mean",&mean);
-		t1_old -> SetBranchAddress("mean_err",&mean_err);
-		t1_old -> SetBranchAddress("sigma",&sigma);
-		t1_old -> SetBranchAddress("sigma_err",&sigma_err);
-		t1_old -> SetBranchAddress("beta",&beta);
-		t1_old -> SetBranchAddress("beta_err",&beta_err);
-		t1_old -> SetBranchAddress("ampl",&ampl);
-		t1_old -> SetBranchAddress("ampl_err",&ampl_err);
-		t1_old -> SetBranchAddress("tail",&tail);
-		t1_old -> SetBranchAddress("tail_err",&tail_err);
-		//t1_old -> SetBranchAddress("ratio",&ratio);
-		//t1_old -> SetBranchAddress("ratio_err",&ratio_err);
-		t1_old -> SetBranchAddress("step",&step);
-		t1_old -> SetBranchAddress("step_err",&step_err);
-		t1_old -> SetBranchAddress("cost",&cost);
-		t1_old -> SetBranchAddress("cost_err",&cost_err);
-		t1_old -> SetBranchAddress("p_value",&p_value);
-		t1_old -> SetBranchAddress("p_value_ndof",&p_value_ndof);
+		t1_old -> SetBranchAddress("massNum",&LinkedLineStruct.massN);
+		t1_old -> SetBranchAddress("element",&LinkedLineStruct.element);
+		t1_old -> SetBranchAddress("litEn",&LinkedLineStruct.litEn);
+		t1_old -> SetBranchAddress("litEn_err",&LinkedLineStruct.litEn_err);
+		t1_old -> SetBranchAddress("mean",&LinkedLineStruct.mean);
+		t1_old -> SetBranchAddress("mean_err",&LinkedLineStruct.mean_err);
+		t1_old -> SetBranchAddress("sigma",&LinkedLineStruct.sigma);
+		t1_old -> SetBranchAddress("sigma_err",&LinkedLineStruct.sigma_err);
+		t1_old -> SetBranchAddress("beta",&LinkedLineStruct.beta);
+		t1_old -> SetBranchAddress("beta_err",&LinkedLineStruct.beta_err);
+		t1_old -> SetBranchAddress("ampl",&LinkedLineStruct.ampl);
+		t1_old -> SetBranchAddress("ampl_err",&LinkedLineStruct.ampl_err);
+		t1_old -> SetBranchAddress("tail",&LinkedLineStruct.tail);
+		t1_old -> SetBranchAddress("tail_err",&LinkedLineStruct.tail_err);
+		//t1_old -> SetBranchAddress("ratio",&LinkedLineStruct.ratio);
+		//t1_old -> SetBranchAddress("ratio_err",&LinkedLineStruct.ratio_err);
+		t1_old -> SetBranchAddress("step",&LinkedLineStruct.step);
+		t1_old -> SetBranchAddress("step_err",&LinkedLineStruct.step_err);
+		t1_old -> SetBranchAddress("cost",&LinkedLineStruct.cost);
+		t1_old -> SetBranchAddress("cost_err",&LinkedLineStruct.cost_err);
 		
-		t1_old -> SetBranchAddress("histo", &p_line_histo);
+		if( t1_old->GetBranch("chi2") ) t1_old -> SetBranchAddress("chi2", &LinkedLineStruct.chi2);
+		if( t1_old->GetBranch("chi2ndof") ) t1_old -> SetBranchAddress("chi2ndof", &LinkedLineStruct.chi2ndof);
+		
+		t1_old -> SetBranchAddress("p_value",&LinkedLineStruct.p_value);
+		t1_old -> SetBranchAddress("p_value_ndof",&LinkedLineStruct.p_value_ndof);
+		
+		if( t1_old->GetBranch("histo") ) t1_old -> SetBranchAddress("histo", &LinkedLineStruct.histo);
+		if( t1_old->GetBranch("fit") ) t1_old -> SetBranchAddress("fit", &LinkedLineStruct.fit);
 	}
 	
 	
@@ -192,34 +177,13 @@ int GatorCalibScriptBAT(string calibset, string configfile, bool recreate)
 		
 		if(ans==string("y")  || ans==string("Y")){
 			if(doFitBAT(MCAhisto,CalibLinesVec[iLine])){
-				massN = CalibLinesVec[iLine].massN;
-				element = CalibLinesVec[iLine].element;
-				litEn = CalibLinesVec[iLine].litEn;
-				litEn_err = CalibLinesVec[iLine].litEn_err;
-				mean = CalibLinesVec[iLine].mean;
-				mean_err = CalibLinesVec[iLine].mean_err;
-				sigma = CalibLinesVec[iLine].sigma;
-				sigma_err = CalibLinesVec[iLine].sigma_err;
-				beta = CalibLinesVec[iLine].beta;
-				beta_err = CalibLinesVec[iLine].beta_err;
-				ampl = CalibLinesVec[iLine].ampl;
-				ampl_err = CalibLinesVec[iLine].ampl_err;
-				tail = CalibLinesVec[iLine].tail;
-				tail_err = CalibLinesVec[iLine].tail_err;
-				//ratio = CalibLinesVec[iLine].ratio;
-				//ratio_err = CalibLinesVec[iLine].ratio_err;
-				step = CalibLinesVec[iLine].step;
-				step_err = CalibLinesVec[iLine].step_err;
-				cost = CalibLinesVec[iLine].cost;
-				cost_err = CalibLinesVec[iLine].cost_err;
-				p_value = CalibLinesVec[iLine].p_value;
-				p_value_ndof = CalibLinesVec[iLine].p_value_ndof;
 				
-				p_line_histo = CalibLinesVec[iLine].histo;
-				
+				LinkedLineStruct = CalibLinesVec[iLine];
 				t1->Fill();
 				t1->AutoSave();
+				
 			}else{
+				/*
 				if(t1_old){
 					for(int iEnt=0; iEnt<t1_old->GetEntries(); iEnt++){
 						t1_old->GetEntry(iEnt);
@@ -230,6 +194,7 @@ int GatorCalibScriptBAT(string calibset, string configfile, bool recreate)
 						}
 					}
 				}
+				*/
 			}
 		}
 	}
@@ -323,97 +288,69 @@ int GatorCalibScriptLL(string calibset, string configfile, bool recreate)
 	
 	t1 = new TTree("linestree","Results of the fits for each line");
 	
-	//Variables to put in tree
-	string massN;
-	string *pmassN = &massN;
-	string element;
-	string *pelement = &element;
-	double litEn;
-	double litEn_err;
-	double mean;
-	double mean_err;
-	double sigma;
-	double sigma_err;
-	double beta;
-	double beta_err;
-	double ampl;
-	double ampl_err;
-	double tail;
-	double tail_err;
-	//double ratio;
-	//double ratio_err;
-	double step;
-	double step_err;
-	double cost;
-	double cost_err;
-	
-	double chi2;
-	double chi2ndof;
-	
-	double p_value;
-	double p_value_ndof;
-	
-	TH1D* p_line_histo = NULL;
+	CalibLine LinkedLineStruct;//This is to address the trees.
 	
 	
-	t1 -> Branch("massNum","string",&massN);
-	t1 -> Branch("element","string",&pelement);
-	t1 -> Branch("litEn",&litEn,"litEn/D");
-	t1 -> Branch("litEn_err",&litEn_err,"litEn_err/D");
-	t1 -> Branch("mean",&mean,"mean/D");
-	t1 -> Branch("mean_err",&mean_err,"mean_err/D");
-	t1 -> Branch("sigma",&sigma,"sigma/D");
-	t1 -> Branch("sigma_err",&sigma_err,"sigma_err/D");
-	t1 -> Branch("beta",&beta,"beta/D");
-	t1 -> Branch("beta_err",&beta_err,"beta_err/D");
-	t1 -> Branch("ampl",&ampl,"ampl/D");
-	t1 -> Branch("ampl_err",&ampl_err,"ampl_err/D");
-	t1 -> Branch("tail",&tail,"tail/D");
-	t1 -> Branch("tail_err",&tail_err,"tail_err/D");
-	//t1 -> Branch("ratio",&ratio,"ratio/D");
-	//t1 -> Branch("ratio_err",&ratio_err,"ratio_err/D");
-	t1 -> Branch("step",&step,"step/D");
-	t1 -> Branch("step_err",&step_err,"step_err/D");
-	t1 -> Branch("cost",&cost,"cost/D");
-	t1 -> Branch("cost_err",&cost_err,"cost_err/D");
+	t1 -> Branch("massNum","string",&LinkedLineStruct.massN);
+	t1 -> Branch("element","string",&LinkedLineStruct.element);
+	t1 -> Branch("litEn",&LinkedLineStruct.litEn,"litEn/D");
+	t1 -> Branch("litEn_err",&LinkedLineStruct.litEn_err,"litEn_err/D");
+	t1 -> Branch("mean",&LinkedLineStruct.mean,"mean/D");
+	t1 -> Branch("mean_err",&LinkedLineStruct.mean_err,"mean_err/D");
+	t1 -> Branch("sigma",&LinkedLineStruct.sigma,"sigma/D");
+	t1 -> Branch("sigma_err",&LinkedLineStruct.sigma_err,"sigma_err/D");
+	t1 -> Branch("beta",&LinkedLineStruct.beta,"beta/D");
+	t1 -> Branch("beta_err",&LinkedLineStruct.beta_err,"beta_err/D");
+	t1 -> Branch("ampl",&LinkedLineStruct.ampl,"ampl/D");
+	t1 -> Branch("ampl_err",&LinkedLineStruct.ampl_err,"ampl_err/D");
+	t1 -> Branch("tail",&LinkedLineStruct.tail,"tail/D");
+	t1 -> Branch("tail_err",&LinkedLineStruct.tail_err,"tail_err/D");
+	//t1 -> Branch("ratio",&LinkedLineStruct.ratio,"ratio/D");
+	//t1 -> Branch("ratio_err",&LinkedLineStruct.ratio_err,"ratio_err/D");
+	t1 -> Branch("step",&LinkedLineStruct.step,"step/D");
+	t1 -> Branch("step_err",&LinkedLineStruct.step_err,"step_err/D");
+	t1 -> Branch("cost",&LinkedLineStruct.cost,"cost/D");
+	t1 -> Branch("cost_err",&LinkedLineStruct.cost_err,"cost_err/D");
 	
-	t1 -> Branch("chi2",&chi2,"chi2/D");
-	t1 -> Branch("chi2ndof",&chi2ndof,"chi2ndof/D");
+	t1 -> Branch("chi2",&LinkedLineStruct.chi2,"chi2/D");
+	t1 -> Branch("chi2ndof",&LinkedLineStruct.chi2ndof,"chi2ndof/D");
 	
-	t1 -> Branch("p_value",&p_value,"p_value/D");
-	t1 -> Branch("p_value_ndof",&p_value_ndof,"p_value_ndof/D");
+	t1 -> Branch("p_value",&LinkedLineStruct.p_value,"p_value/D");
+	t1 -> Branch("p_value_ndof",&LinkedLineStruct.p_value_ndof,"p_value_ndof/D");
 	
-	t1 -> Branch("histo", "TH1D", &p_line_histo);
-	
+	t1 -> Branch("histo", "TH1D", &LinkedLineStruct.histo);
+	t1 -> Branch("fit", "TF1", &LinkedLineStruct.fit);
 	
 	if(!recreate){
-		t1_old -> SetBranchAddress("massNum",&massN);
-		t1_old -> SetBranchAddress("element",&pelement);
-		t1_old -> SetBranchAddress("litEn",&litEn);
-		t1_old -> SetBranchAddress("litEn_err",&litEn_err);
-		t1_old -> SetBranchAddress("mean",&mean);
-		t1_old -> SetBranchAddress("mean_err",&mean_err);
-		t1_old -> SetBranchAddress("sigma",&sigma);
-		t1_old -> SetBranchAddress("sigma_err",&sigma_err);
-		t1_old -> SetBranchAddress("beta",&beta);
-		t1_old -> SetBranchAddress("beta_err",&beta_err);
-		t1_old -> SetBranchAddress("ampl",&ampl);
-		t1_old -> SetBranchAddress("ampl_err",&ampl_err);
-		t1_old -> SetBranchAddress("tail",&tail);
-		t1_old -> SetBranchAddress("tail_err",&tail_err);
-		//t1_old -> SetBranchAddress("ratio",&ratio);
-		//t1_old -> SetBranchAddress("ratio_err",&ratio_err);
-		t1_old -> SetBranchAddress("step",&step);
-		t1_old -> SetBranchAddress("step_err",&step_err);
-		t1_old -> SetBranchAddress("cost",&cost);
-		t1_old -> SetBranchAddress("cost_err",&cost_err);
+		t1_old -> SetBranchAddress("massNum",&LinkedLineStruct.massN);
+		t1_old -> SetBranchAddress("element",&LinkedLineStruct.element);
+		t1_old -> SetBranchAddress("litEn",&LinkedLineStruct.litEn);
+		t1_old -> SetBranchAddress("litEn_err",&LinkedLineStruct.litEn_err);
+		t1_old -> SetBranchAddress("mean",&LinkedLineStruct.mean);
+		t1_old -> SetBranchAddress("mean_err",&LinkedLineStruct.mean_err);
+		t1_old -> SetBranchAddress("sigma",&LinkedLineStruct.sigma);
+		t1_old -> SetBranchAddress("sigma_err",&LinkedLineStruct.sigma_err);
+		t1_old -> SetBranchAddress("beta",&LinkedLineStruct.beta);
+		t1_old -> SetBranchAddress("beta_err",&LinkedLineStruct.beta_err);
+		t1_old -> SetBranchAddress("ampl",&LinkedLineStruct.ampl);
+		t1_old -> SetBranchAddress("ampl_err",&LinkedLineStruct.ampl_err);
+		t1_old -> SetBranchAddress("tail",&LinkedLineStruct.tail);
+		t1_old -> SetBranchAddress("tail_err",&LinkedLineStruct.tail_err);
+		//t1_old -> SetBranchAddress("ratio",&LinkedLineStruct.ratio);
+		//t1_old -> SetBranchAddress("ratio_err",&LinkedLineStruct.ratio_err);
+		t1_old -> SetBranchAddress("step",&LinkedLineStruct.step);
+		t1_old -> SetBranchAddress("step_err",&LinkedLineStruct.step_err);
+		t1_old -> SetBranchAddress("cost",&LinkedLineStruct.cost);
+		t1_old -> SetBranchAddress("cost_err",&LinkedLineStruct.cost_err);
 		
-		if( t1_old->GetBranch("chi2") ) t1_old -> SetBranchAddress("chi2", &chi2);
-		if( t1_old->GetBranch("chi2ndof") ) t1_old -> SetBranchAddress("chi2ndof", &chi2ndof);
+		if( t1_old->GetBranch("chi2") ) t1_old -> SetBranchAddress("chi2", &LinkedLineStruct.chi2);
+		if( t1_old->GetBranch("chi2ndof") ) t1_old -> SetBranchAddress("chi2ndof", &LinkedLineStruct.chi2ndof);
 		
-		t1_old -> SetBranchAddress("p_value",&p_value);
-		t1_old -> SetBranchAddress("p_value_ndof",&p_value_ndof);
-		if( t1_old->GetBranch("histo") ) t1_old -> SetBranchAddress("histo", &p_line_histo);
+		t1_old -> SetBranchAddress("p_value",&LinkedLineStruct.p_value);
+		t1_old -> SetBranchAddress("p_value_ndof",&LinkedLineStruct.p_value_ndof);
+		
+		if( t1_old->GetBranch("histo") ) t1_old -> SetBranchAddress("histo", &LinkedLineStruct.histo);
+		if( t1_old->GetBranch("fit") ) t1_old -> SetBranchAddress("fit", &LinkedLineStruct.fit);
 	}
 	
 	
@@ -428,32 +365,8 @@ int GatorCalibScriptLL(string calibset, string configfile, bool recreate)
 		
 		if(ans==string("y")  || ans==string("Y")){
 			if(doFitLL(MCAhisto,CalibLinesVec[iLine])){
-				massN = CalibLinesVec[iLine].massN;
-				element = CalibLinesVec[iLine].element;
-				litEn = CalibLinesVec[iLine].litEn;
-				litEn_err = CalibLinesVec[iLine].litEn_err;
-				mean = CalibLinesVec[iLine].mean;
-				mean_err = CalibLinesVec[iLine].mean_err;
-				sigma = CalibLinesVec[iLine].sigma;
-				sigma_err = CalibLinesVec[iLine].sigma_err;
-				beta = CalibLinesVec[iLine].beta;
-				beta_err = CalibLinesVec[iLine].beta_err;
-				ampl = CalibLinesVec[iLine].ampl;
-				ampl_err = CalibLinesVec[iLine].ampl_err;
-				tail = CalibLinesVec[iLine].tail;
-				tail_err = CalibLinesVec[iLine].tail_err;
-				step = CalibLinesVec[iLine].step;
-				step_err = CalibLinesVec[iLine].step_err;
-				cost = CalibLinesVec[iLine].cost;
-				cost_err = CalibLinesVec[iLine].cost_err;
 				
-				chi2 = CalibLinesVec[iLine].chi2;
-				chi2ndof = CalibLinesVec[iLine].chi2ndof;
-				
-				p_value = CalibLinesVec[iLine].p_value;
-				p_value_ndof = CalibLinesVec[iLine].p_value_ndof;
-				
-				p_line_histo = CalibLinesVec[iLine].histo;
+				LinkedLineStruct = CalibLinesVec[iLine];
 				
 				t1->Fill();
 				t1->AutoSave();
@@ -461,7 +374,7 @@ int GatorCalibScriptLL(string calibset, string configfile, bool recreate)
 				if(t1_old){
 					for(int iEnt=0; iEnt<t1_old->GetEntries(); iEnt++){
 						t1_old->GetEntry(iEnt);
-						if( (massN==CalibLinesVec[iLine].massN) && (element==CalibLinesVec[iLine].element) && (litEn==CalibLinesVec[iLine].litEn)){
+						if( (LinkedLineStruct.massN==CalibLinesVec[iLine].massN) && (LinkedLineStruct.element==CalibLinesVec[iLine].element) && (LinkedLineStruct.litEn==CalibLinesVec[iLine].litEn)){
 							t1->Fill();
 							t1->AutoSave();
 							break;
@@ -472,8 +385,9 @@ int GatorCalibScriptLL(string calibset, string configfile, bool recreate)
 		}
 	}
 	
-	if(t1) t1->Write();
+	
 	if(outfile){
+		if(t1) outfile->WriteTObject(t1);
 		outfile->Close();
 		delete outfile;
 	}

@@ -110,6 +110,11 @@ typedef struct ResultsStruct
 typedef struct CalibLine
 {
 	
+	CalibLine(){
+		histo = NULL;
+		fit = NULL;
+	}
+	
 	string massN;
 	string element;
 	double litEn;
@@ -142,6 +147,7 @@ typedef struct CalibLine
 	double p_value_ndof;
 	
 	TH1D* histo;
+	TF1* fit;
 	
 }CalibLine;
 

@@ -4,7 +4,8 @@
 #include "TH1D.h"
 #include "GatorStructs.h"
 
-Double_t peakFitFunc(Double_t* x,Double_t* par);
+Double_t peakFitFuncA(Double_t* x,Double_t* par);
+Double_t peakFitFuncB(Double_t* x,Double_t* par);
 
 void amplInit(TH1D* histo, CalibLine& line);
 void costInit(TH1D* histo, CalibLine& line);

@@ -1,3 +1,4 @@
+#include <limits>
 #include <vector>
 #include <string>
 #include <fstream>
@@ -19,6 +20,8 @@
 #include "TGraphErrors.h"
 #include "TFitResultPtr.h"
 #include "TFitResult.h"
+
+#include "Math/Functor.h"
 
 #include "GammaLineLikelihood.hh"
 #include "GatorStructs.h"
@@ -108,22 +111,28 @@ bool doFitBAT(TH1D* MCAhisto, CalibLine& line)
 	double xmin = MCAhisto->GetBinLowEdge(firstbin);
 	double xmax = MCAhisto->GetBinLowEdge(lastbin+1);
 	
-	stringstream ss_histoname; ss_histoname.str(""); ss_histoname << (int)(line.litEn+0.5) << "keV" ;
+	stringstream ss_histoname; ss_histoname.str(""); ss_histoname << line.element << line.massN << "_" << (int)(line.litEn+0.5) << "keV" ;
 	TH1D* tmphisto = new TH1D(ss_histoname.str().c_str(),";Channel;Counts",nbins,xmin,xmax);
-	tmphisto -> SetDirectory(0);
+	//tmphisto -> SetDirectory(0);
+	
 	
 	for(int bin=firstbin; bin <=lastbin; bin++){
 		double bincenter = MCAhisto->GetBinCenter(bin);
 		tmphisto->Fill(bincenter,MCAhisto->GetBinContent(bin));
 	}
 	
+	
 	TCanvas *c1 = new TCanvas("c1");
 	c1->SetLogy();
 	
 	//Start with the fitting process
-	TF1* ff_MCA = new TF1("ff_MCA",peakFitFunc,xmin,xmax,7);
+	TF1* ff_MCA = new TF1("ff_MCA",peakFitFuncB,xmin,xmax,7);
 	ff_MCA->SetParNames("Mean","Ampl","Tail","Sigma","Beta","Step","Constant");
 	//ff_MCA->SetParNames("Mean","Ampl","Ratio","Sigma","Beta","Constant");
+	
+	
+	int nPars = ff_MCA->GetNpar();
+	
 	
 	costInit(tmphisto,line);
 	stepInit(tmphisto,line);
@@ -131,20 +140,47 @@ bool doFitBAT(TH1D* MCAhisto, CalibLine& line)
 	//sigmaInit(tmphisto,line);
 	
 	
-	ff_MCA -> SetParLimits(0,line.MCAlowch,line.MCAupch);
-	ff_MCA -> SetParLimits(1,0.,2*line.ampl); //Gaussian strenght
-	//ff_MCA -> SetParLimits(2,0.,3*line.ampl); //Tail strenght
+	
+	//Set initial parameters
+	ff_MCA -> SetParameter(0, line.mean);
+	ff_MCA -> SetParameter(1, line.ampl);
+	ff_MCA -> SetParameter(2, line.tail);
+	ff_MCA -> SetParameter(3, line.sigma);
+	ff_MCA -> SetParameter(4, line.beta);
+	ff_MCA -> SetParameter(5, line.step);
+	ff_MCA -> SetParameter(6, line.cost);
+	
+	for(int iPar=0; iPar<nPars; iPar++){
+		ff_MCA -> SetParLimits(iPar, 1e-80, 100*ff_MCA->GetParameter(iPar) );
+	}
+	
+	/*
+	ff_MCA -> SetParLimits(0, 0.0, std::numeric_limits<double>::infinity() );
+	ff_MCA -> SetParLimits(1, 0.0, std::numeric_limits<double>::infinity() ); //Gaussian strenght
+	ff_MCA -> SetParLimits(2, 0.0, std::numeric_limits<double>::infinity() ); //Tail strenght
+	//ff_MCA -> SetParLimits(2,0.,1. ); //Tail ratio
+	ff_MCA -> SetParLimits(3, 0.0, std::numeric_limits<double>::infinity() );
+	ff_MCA -> SetParLimits(4, 0.0, std::numeric_limits<double>::infinity() );
+	ff_MCA -> SetParLimits(5, 0.0, std::numeric_limits<double>::infinity() );
+	ff_MCA -> SetParLimits(6, 0.0, std::numeric_limits<double>::infinity() );
+	*/
+	
+	
+	ff_MCA -> SetParLimits(0, 0.9*line.mean,1.1*line.mean );
+	//ff_MCA -> SetParLimits(1, 0.0, std::numeric_limits<double>::infinity() ); //Gaussian strenght
+	//ff_MCA -> SetParLimits(2, 0.0, std::numeric_limits<double>::infinity() ); //Tail strenght
 	ff_MCA -> SetParLimits(2,0.,1.); //Tail ratio
-	ff_MCA -> SetParLimits(3,0,2.5*line.sigma);
-	ff_MCA -> SetParLimits(4,0.,5*line.beta);
-	ff_MCA -> SetParLimits(5,0.,5*line.step);
-	ff_MCA -> SetParLimits(6,0.,2*line.cost);
+	ff_MCA -> SetParLimits(3, 0.9*line.sigma,1.1*line.sigma );
+	//ff_MCA -> SetParLimits(4, 0.0, 1e20 );
+	//ff_MCA -> SetParLimits(5, 0.0, std::numeric_limits<double>::infinity() );
+	//ff_MCA -> SetParLimits(6, 0.0, std::numeric_limits<double>::infinity() );
+	
 	
 	
 	
 	BCLog::SetLogLevel(BCLog::debug);
 	
-	BCHistogramFitter *histofitter = new BCHistogramFitter(tmphisto, ff_MCA);
+	BCHistogramFitter *histofitter = new BCHistogramFitter( ss_histoname.str().c_str(), tmphisto, ff_MCA );
 	
 	// set options for MCMC
 	//histofitter -> MCMCSetFlagPreRun (false);
@@ -152,10 +188,47 @@ bool doFitBAT(TH1D* MCAhisto, CalibLine& line)
 	//histofitter->SetMarginalizationMethod(BCIntegrate::kMargMetropolis);
 	//histofitter->MCMCSetNIterationsPreRunMin(100000);
 	histofitter->MCMCSetNIterationsRun(100000);
+	//histofitter->MCMCSetMinimumEfficiency(0.05);
+	//histofitter->MCMCSetMaximumEfficiency(0.2);
 	
+	
+	int nChains = histofitter->MCMCGetNChains();//This depends on the precision
+	
+	//Used to generate random numbers between 0 and 1
+	TRandom3 RdmGen(0);
 	
 	//set initial value of parameters
 	vector<double> paramsval;
+	for(int chain = 0; chain<nChains; chain++){
+		for(int iPar=0; iPar<nPars; iPar++){
+			
+			double parmin, parmax;
+			ff_MCA->GetParLimits(iPar, parmin, parmax);
+			//double val = ff_MCA->GetParameter(iPar);
+			double val = parmin + RdmGen.Rndm()*(parmax-parmin);//Value between 0 and the parameter upper limit
+			
+			BCParameter *Par = histofitter->GetParameter(iPar);
+			
+			
+			cout << "Par " << iPar << ":\n" << "  Min = " << Par->GetLowerLimit() << endl;
+			cout << "  Val = " << val << endl;
+			cout << "  Max = " << Par->GetUpperLimit() << endl;
+			
+			
+			//This is for the case where the upper limit is infinite. r=0.5 will correspond to the initialized value.
+			//double r = RdmGen.Rndm();//Value between 0 and 1
+			//double val = ff_MCA->GetParameter(iPar)*r/(1-r);
+			
+			paramsval.push_back(val);
+		}
+	}
+	
+	
+	histofitter->MCMCSetInitialPositions(paramsval);
+	
+	
+	
+	//exit(-1);
 	
 	cout <<"\nMean init value: " << line.mean << endl;
 	cout <<"\tLimits: (" << histofitter->GetParameter("Mean")->GetLowerLimit() << " , " << histofitter->GetParameter("Mean")->GetUpperLimit() << ")" << endl;
@@ -172,22 +245,12 @@ bool doFitBAT(TH1D* MCAhisto, CalibLine& line)
 	cout <<"\nConstant init value: " << line.cost << endl;
 	cout <<"\tLimits: (" << histofitter->GetParameter("Constant")->GetLowerLimit() << " , " << histofitter->GetParameter("Constant")->GetUpperLimit() << ")" << endl;
 	
-	int nPars = paramsval.size();
-	int nChains = histofitter->MCMCGetNChains();//This depends on the precision
 	
-	for(int chain = 0; chain<nChains; chain++){
-		paramsval.push_back(line.mean);
-		paramsval.push_back(line.ampl);
-		paramsval.push_back(line.tail);
-		paramsval.push_back(line.sigma);
-		paramsval.push_back(line.beta);
-		paramsval.push_back(line.step);
-		paramsval.push_back(line.cost);
-	}
-	histofitter->MCMCSetInitialPositions(paramsval);
-	
+	histofitter->SetFlagIntegration(false);
 	
 	histofitter->Fit();
+	
+	histofitter->CalculatePValueLikelihood(histofitter->GetBestFitParameters());
 	
 	line.mean = histofitter->GetBestFitParameter(0);
 	line.mean_err = histofitter->GetBestFitParameterError(0);
@@ -205,23 +268,20 @@ bool doFitBAT(TH1D* MCAhisto, CalibLine& line)
 	line.step_err = histofitter->GetBestFitParameterError(5);
 	line.cost = histofitter->GetBestFitParameter(6);
 	line.cost_err = histofitter->GetBestFitParameterError(6);
+	
 	line.p_value = histofitter->GetPValue();
 	line.p_value_ndof = histofitter->GetPValueNDoF();
+	
+	double nDof = (double)(histofitter->GetNDataPoints() - histofitter->GetNParameters());
+	line.chi2ndof = ROOT::Math::chisquared_quantile_c( line.p_value_ndof, nDof );
+	line.chi2 = line.chi2ndof*nDof;
+	
+	line.histo=tmphisto;
+	line.fit=ff_MCA;
 	
 	histofitter->DrawFit("", true); // draw with a legend
 	
 	c1->Update();
-	
-	if(theApp) theApp->Run(kTRUE);
-	
-	//Open a canvas to inspect the correlation of the beta and of the tail relative amplitude
-	
-	TCanvas *c2 = new TCanvas("c2");
-	c2 -> cd();
-	
-	(histofitter->GetMarginalized("Tail","Beta"))->Draw();
-	
-	c2->Update();
 	
 	if(theApp) theApp->Run(kTRUE);
 	
@@ -233,10 +293,7 @@ bool doFitBAT(TH1D* MCAhisto, CalibLine& line)
 		if(ans!=string("y")  || ans!=string("Y") || ans!=string("n") || ans!=string("N")) break;
 	}
 	
-	if(ff_MCA) delete ff_MCA;
-	if(tmphisto) line.histo=tmphisto;
 	if(c1) delete c1;
-	if(c2) delete c2;
 	
 	if(ans==string("y") || ans==string("Y")){
 		return true;
@@ -359,9 +416,7 @@ using Analysis::Param;
 
 bool doFitLL(TH1D* MCAhisto, CalibLine& line)
 {
-	
-	static GammaLineLikelihood *linelkh=NULL;
-	if(!linelkh) linelkh = new GammaLineLikelihood();
+	GammaLineLikelihood *linelkh= new GammaLineLikelihood();
 	
 	//Make a copy of the ROI of the original histo and put it in a new histogram
 	int firstbin = MCAhisto->FindBin(line.MCAlowch);
@@ -381,29 +436,33 @@ bool doFitLL(TH1D* MCAhisto, CalibLine& line)
 	
 	line.histo = linehisto;
 	
-	//Start with the fitting process
+	TF1* ff_MCA = new TF1("ff_MCA", peakFitFuncA, xmin, xmax, 7);
+	ff_MCA->SetParNames("Mean","Ampl","Tail","Sigma","Beta","Step","Constant");
+	//ff_MCA->SetParNames("Mean","Ampl","Ratio","Sigma","Beta","Constant");
+	
+	line.fit = ff_MCA;
+	
+	//Initialization of critical parameters before the fitting
+	amplInit(linehisto, line);
 	costInit(linehisto, line);
 	stepInit(linehisto, line);
-	amplInit(linehisto, line);
+	//line.step = line.ampl/1000;
+	//line.step = 0.0;
 	//sigmaInit(tmphisto,line);
 	
 	
 	linelkh->Init(linehisto, &line);
 	
-	linelkh->SetTrackVals();
-	linelkh->SetEngineVerb(3);
-	linelkh->SetMaxSteps(1000);
-	//linelkh->SetParStepSize(0.001);
+	//linelkh->SetTrackVals();
+	linelkh->SetEngineVerb(1);
+	linelkh->SetVerbosity(2);
+	//linelkh->SetMaxSteps(1000);
 	linelkh->MetropolisMLE();
 	linelkh->ScaleLogProbToMax();
 	
 	//This function copies also the results in the CalibLine structure
 	linelkh->Minuit2MLE();
 	
-	
-	TF1* ff_MCA = new TF1("ff_MCA", peakFitFunc, xmin, xmax, 7);
-	ff_MCA->SetParNames("Mean","Ampl","Tail","Sigma","Beta","Step","Constant");
-	//ff_MCA->SetParNames("Mean","Ampl","Ratio","Sigma","Beta","Constant");
 	
 	ff_MCA -> SetParameter(0,line.mean);
 	ff_MCA -> SetParameter(1,line.ampl); //Gaussian strenght
@@ -415,12 +474,13 @@ bool doFitLL(TH1D* MCAhisto, CalibLine& line)
 	ff_MCA -> SetParameter(6,line.cost);
 	
 	
-	linehisto->GetListOfFunctions()->AddAt(ff_MCA, 0);
 	
 	
 	TCanvas *c1 = new TCanvas("c1");
 	c1->SetLogy();
 	
+	linehisto->Draw();
+	ff_MCA->Draw("SAME");
 	
 	c1->Update();
 	
@@ -434,13 +494,21 @@ bool doFitLL(TH1D* MCAhisto, CalibLine& line)
 		if(ans!=string("y")  || ans!=string("Y") || ans!=string("n") || ans!=string("N")) break;
 	}
 	
-	if(ff_MCA) delete ff_MCA;
-	if(c1) delete c1;
+	
+	
+	bool retval;
 	
 	if(ans==string("y") || ans==string("Y")){
-		return true;
+		retval = true;
 	}else{
-		return false;
+		retval = false;
 	}
 	
+	if(linelkh){
+		delete linelkh;
+	}
+	
+	if(c1) delete c1;
+	
+	return retval;
 }

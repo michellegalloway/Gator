@@ -31,7 +31,7 @@ namespace Analysis{
 		public:
 	
 			GammaLineLikelihood();
-			~GammaLineLikelihood(){;};
+			~GammaLineLikelihood();
 		
 			
 			//These methods resets the class to initial state. All the internal info are lost.
@@ -59,7 +59,7 @@ namespace Analysis{
 		
 			void MetropolisMLE();
 		
-			void Minuit2MLE(vector<double> parVal);
+			void Minuit2MLE(vector<double> &parVal);
 			void Minuit2MLE();
 			
 			//Miscellaneous
@@ -68,6 +68,8 @@ namespace Analysis{
 			
 			
 		private:
+			
+			virtual void MetropolisMLE(vector<double> *initpar);
 		
 			int DefineParameters();
 		
@@ -85,21 +87,15 @@ namespace Analysis{
 			void CalculatePValueLikelihood(){CalculatePValueLikelihood(NULL);};
 			
 		
-			TH1D *fHisto;
+			TH1D *fHisto;//Don't delete in the distructor
 			int fNbins;
 			
-			CalibLine* fLine;
+			CalibLine* fLine;//Don't delete in the distructor
 		
 			//This is the scale of the step size for the MCMC proposals
 			bool fExtParStep;
 			double fParStepSize;
 		
-			//This is the data. Vector of doubles for each z slice.
-			//fData[iSlice][iEntry]
-			//The entries represent the ratio S1top/S1bot
-			vector<vector<double>* >* fData;
-			
-			
 			//This flag is true when the class is properly initialized for the MLE calculation
 			bool fInit;
 		
@@ -114,6 +110,8 @@ namespace Analysis{
 			double fPval, fPvalNDof; //Initialized to -1.0 in order to provide an additional flag that where not calculated
 			
 			bool fPvalues;//Flag to see if p-values have been calculated
+			
+			int fNsteps;
 			
 		protected:
 	

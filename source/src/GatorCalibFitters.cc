@@ -12,7 +12,7 @@
 using namespace std;
 
 ///////////Definitions of the functions for the plot//////////////
-Double_t peakFitFunc(Double_t* x,Double_t* par){
+Double_t peakFitFuncA(Double_t* x,Double_t* par){
 	
 	Double_t E,P,T,A,sigma,beta,S,C;
 	
@@ -27,15 +27,45 @@ Double_t peakFitFunc(Double_t* x,Double_t* par){
 	C = par[6];
 	
 	double gauss = TMath::Exp( -pow((E-P)/sigma,2)/2 );
-	double tail = TMath::Exp( pow(sigma/beta,2)/2 + beta*(E-P) )*TMath::Erfc( ((E-P)*beta+pow(sigma,2) )/(sqrt(2)*sigma*beta) );
+	//double tail = TMath::Exp( (pow(sigma/beta,2)/2) + ((E-P)/beta) ) * TMath::Erfc(  ( (E-P)*beta+pow(sigma,2) )/( sqrt(2)*sigma*beta )  );
+	//double tail = TMath::Exp( ((E-P)/beta) ) * TMath::Erfc(  ( (E-P)*beta+pow(sigma,2) )/( sqrt(2)*sigma*beta )  );
+	double tail = TMath::Exp( ((E-P)/beta) ) * TMath::Erfc( (((E-P)/sigma) + (sigma/beta))/sqrt(2) );
 	double step = TMath::Erfc((E-P)/(sqrt(2)*sigma));
 	
-	return A*(gauss + T*tail) + S*step + C;
+	return A*gauss + T*tail + S*step + C;
 	
 	//return A*( TMath::Gaus(E,P,sigma) + R * TMath::Exp(beta*(E-P))*TMath::Erfc((E-(P-beta*sigma*sigma))/(sqrt(2)*sigma)) ) + C;
 	
 }
 //////////////////////////////////////////////////////////////////////////////////
+
+
+Double_t peakFitFuncB(Double_t* x,Double_t* par){
+	
+	Double_t E,P,T,A,sigma,Gamma,S,C;
+	
+	E = x[0];
+	
+	P = par[0];
+	A = par[1];
+	T = par[2];
+	sigma = par[3];
+	Gamma = par[4];
+	S = par[5];
+	C = par[6];
+	
+	double gauss = TMath::Gaus( E,P,sigma );
+	//double tail = TMath::Exp( (pow(sigma/beta,2)/2) + ((E-P)/beta) ) * TMath::Erfc(  ( (E-P)*beta+pow(sigma,2) )/( sqrt(2)*sigma*beta )  );
+	//double tail = TMath::Exp( ((E-P)/beta) ) * TMath::Erfc(  ( (E-P)*beta+pow(sigma,2) )/( sqrt(2)*sigma*beta )  );
+	double tail = TMath::Exp( ((E-P)*Gamma) ) * TMath::Erfc( ( E-(P-Gamma*sigma*sigma) )/(sqrt(2)*sigma) );
+	double step = TMath::Erfc( (E-P)/(sqrt(2)*sigma) );
+	
+	return A*((1-T)*gauss + T*tail) + S*step + C;
+	
+	//return A*( TMath::Gaus(E,P,sigma) + R * TMath::Exp(beta*(E-P))*TMath::Erfc((E-(P-beta*sigma*sigma))/(sqrt(2)*sigma)) ) + C;
+	
+}
+
 
 
 //----------Initialization functions for parameters-----------//
