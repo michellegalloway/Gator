@@ -32,10 +32,11 @@ set(_sources_general
 #----------------------------------------------------------------------------
 # Add the executable, and link it to the Geant4 libraries
 #
-add_executable(sampleanalysis sampleanalysis_v2.1.cpp ${_sources_sampleanalysis} ${_sources_general})
+add_executable(sampleanalysis sampleanalysis_v2.1.cpp ${_sources_gatoranalysis} ${_sources_general})
 target_link_libraries(sampleanalysis ${ROOT_LIBRARIES})
 
 add_executable(sample_rates sample_rates.cpp ${_sources_trigrate} ${_sources_general})
-target_link_libraries(sampleanalysis ${ROOT_LIBRARIES})
+target_link_libraries(sample_rates ${ROOT_LIBRARIES})
 
 install(TARGETS sampleanalysis DESTINATION bin)
+install(TARGETS sample_rates DESTINATION bin)

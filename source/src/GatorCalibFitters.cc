@@ -6,8 +6,9 @@
 
 #include "TH1D.h"
 
+#ifndef SCRIPT
 #include "GatorStructs.h"
-
+#endif
 
 using namespace std;
 
@@ -32,7 +33,7 @@ Double_t peakFitFuncA(Double_t* x,Double_t* par){
 	double tail = TMath::Exp( ((E-P)/beta) ) * TMath::Erfc( (((E-P)/sigma) + (sigma/beta))/sqrt(2) );
 	double step = TMath::Erfc((E-P)/(sqrt(2)*sigma));
 	
-	return A*gauss + T*tail + S*step + C;
+	return A*(gauss + T*tail) + S*step + C;
 	
 	//return A*( TMath::Gaus(E,P,sigma) + R * TMath::Exp(beta*(E-P))*TMath::Erfc((E-(P-beta*sigma*sigma))/(sqrt(2)*sigma)) ) + C;
 	
@@ -60,7 +61,8 @@ Double_t peakFitFuncB(Double_t* x,Double_t* par){
 	double tail = TMath::Exp( ((E-P)*Gamma) ) * TMath::Erfc( ( E-(P-Gamma*sigma*sigma) )/(sqrt(2)*sigma) );
 	double step = TMath::Erfc( (E-P)/(sqrt(2)*sigma) );
 	
-	return A*((1-T)*gauss + T*tail) + S*step + C;
+	//return A*((1-T)*gauss + T*tail) + S*step + C;
+	return A*(gauss + T*tail) + S*step + C;
 	
 	//return A*( TMath::Gaus(E,P,sigma) + R * TMath::Exp(beta*(E-P))*TMath::Erfc((E-(P-beta*sigma*sigma))/(sqrt(2)*sigma)) ) + C;
 	
@@ -79,6 +81,7 @@ void costInit(TH1D* histo, CalibLine& line){
 	Double_t left_mean = 0.;
 	Double_t right_mean = 0.;
 	
+	/*
 	for(int bin=firstbin; bin<firstbin+10; bin++){
 		left_mean += (histo->GetBinContent(bin))/10.;
 	}
@@ -87,36 +90,46 @@ void costInit(TH1D* histo, CalibLine& line){
 	}
 	
 	line.cost = TMath::Min(left_mean,right_mean);
+	*/
+	
+	right_mean = histo->GetBinContent(lastbin);
+	
+	line.cost = right_mean;
 	
 	return;
 }
 //////////////////////////////////////////////////////////////////////////////////////
+
 
 void stepInit(TH1D* histo, CalibLine& line){
 	
 	Double_t firstbin = histo->FindBin(line.MCAlowch); 
 	Double_t lastbin = histo->FindBin(line.MCAupch);
 	
+	int nBins = 3;
 	
 	Double_t left_mean = 0.;
 	Double_t right_mean = 0.;
 	
-	for(int bin=firstbin; bin<firstbin+10; bin++){
-		left_mean += (histo->GetBinContent(bin))/10.;
-	}
-	for(int bin=lastbin-9; bin<=lastbin; bin++){
-		right_mean += (histo->GetBinContent(bin))/10.;
+	for(int iBin=0; iBin<nBins; iBin++){
+		left_mean += histo->GetBinContent(firstbin+iBin);
+		right_mean += histo->GetBinContent(lastbin-iBin);
 	}
 	
+	line.step = TMath::Max( 0.0, left_mean-right_mean );
+	
+	/*
 	if((left_mean - right_mean)<=0){
 		line.step = right_mean;
 	}else{
 		line.step = (left_mean - right_mean);
 	}
+	*/
 	
 	return;
 }
 /////////////////////////////////////////////////////////////////////////////////////
+
 
 void amplInit(TH1D* histo, CalibLine& line){
 	//This should always be run after the function "costInit"
@@ -136,6 +149,7 @@ void amplInit(TH1D* histo, CalibLine& line){
 }
 //////////////////////////////////////////////////////////////////////////////////////
 
+
 void sigmaInit(TH1D* histo, CalibLine& line){
 	
 	Double_t firstbin = histo->FindBin(line.MCAlowch); 
@@ -151,6 +165,7 @@ void sigmaInit(TH1D* histo, CalibLine& line){
 		}
 	}
 	
+	/*
 	int bin = maxbin;
 	while(histo->GetBinContent(bin)>max/2.){
 		bin--;
@@ -162,8 +177,13 @@ void sigmaInit(TH1D* histo, CalibLine& line){
 		bin++;
 	}
 	double upval = histo->GetBinCenter(bin);
-		
+	
 	line.sigma = (upval - lowval)/2; //This is not the sigma but a good starting point for the fit
+	*/
+	
+	//line.sigma = 0.5*( histo->(GetBinCenter(histo->FindLastBinAbove(max*exp(-0.5)))) - histo->(GetBinCenter(histo->FindFirstBinAbove(max*exp(-0.5)))) );
+	
+	line.sigma = histo->GetBinCenter(histo->FindLastBinAbove(max*exp(-0.5) ) ) - histo->GetBinCenter(maxbin);
 	
 	return;
 }

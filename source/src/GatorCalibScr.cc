@@ -22,8 +22,9 @@
 
 using namespace std;
 
-int GatorCalibScriptBAT(string calibset, string configfile, bool recreate)
+int GatorCalibScriptBAT(string calibset, string configfile, bool recreate, bool update)
 {
+	
 	const string GatorSystem = getEnvVar("GATOR_SYS");
 	if(GatorSystem==string("")){
 		cerr << "\n\nERROR --> Environment variable \"GATOR_SYS\" is not set cannot continue.\n" << endl;
@@ -53,6 +54,11 @@ int GatorCalibScriptBAT(string calibset, string configfile, bool recreate)
 		if(archivedir.at(archivedir.length()-1) != '/' ) archivedir = archivedir + string("/");
 	}
 	
+	if(recreate && update){
+		cerr << "\n\nERROR --> Both the \"recreate\" and \"update\" modes are set! Cannot use conficting options!\n" << endl;
+		return -3;
+	}
+	
 	
 	string calibdir = archivedir + calibset + string("/");
 	
@@ -77,7 +83,7 @@ int GatorCalibScriptBAT(string calibset, string configfile, bool recreate)
 	if(recreate){
 		openmode = string("recreate");
 	}else{
-		openmode = string("update");//Default mode
+		openmode = string("update"); //Default mode
 	}
 	
 	
@@ -88,22 +94,26 @@ int GatorCalibScriptBAT(string calibset, string configfile, bool recreate)
 	
 	bool newfile = false;
 	
+	
 	TTree *t1=NULL, *t1_old=NULL;
 	if(!recreate){
 		t1_old = (TTree*)outfile->Get("linestree");
 		if(!t1_old){
-			recreate = true;//Behaves like if the tree was recreated even if the file is opened in update mode
+			recreate = true; //Behaves like if the tree was recreated even if the file is opened in update mode
 		}
 	}
 	
 	t1 = new TTree("linestree","Results of the fits for each line");
 	
 	
-	CalibLine LinkedLineStruct;//This is to address the trees.
+	CalibLine LinkedLineStruct; //This is to address the trees.
 	
+	//Used only to fulfil the branching address syntax
+	string *p_massN = &LinkedLineStruct.massN;
+	string *p_element = &LinkedLineStruct.element;
 	
-	t1 -> Branch("massNum","string",&LinkedLineStruct.massN);
-	t1 -> Branch("element","string",&LinkedLineStruct.element);
+	t1 -> Branch("massNum","string",&p_massN);
+	t1 -> Branch("element","string",&p_element);
 	t1 -> Branch("litEn",&LinkedLineStruct.litEn,"litEn/D");
 	t1 -> Branch("litEn_err",&LinkedLineStruct.litEn_err,"litEn_err/D");
 	t1 -> Branch("mean",&LinkedLineStruct.mean,"mean/D");
@@ -129,43 +139,56 @@ int GatorCalibScriptBAT(string calibset, string configfile, bool recreate)
 	t1 -> Branch("p_value",&LinkedLineStruct.p_value,"p_value/D");
 	t1 -> Branch("p_value_ndof",&LinkedLineStruct.p_value_ndof,"p_value_ndof/D");
 	
-	t1 -> Branch("histo", "TH1D", &LinkedLineStruct.histo);
-	t1 -> Branch("fit", "TF1", &LinkedLineStruct.fit);
+	t1 -> Branch("histo", "TH1D", &LinkedLineStruct.histo, 32000, 0);
+	t1 -> Branch("fit", "TF1", &LinkedLineStruct.fit, 32000, 0);
 	
+	
+	vector<CalibLine> OldCalibLinesVector; //Used only in the forced update mode
 	
 	if(!recreate){
-		t1_old -> SetBranchAddress("massNum",&LinkedLineStruct.massN);
-		t1_old -> SetBranchAddress("element",&LinkedLineStruct.element);
-		t1_old -> SetBranchAddress("litEn",&LinkedLineStruct.litEn);
-		t1_old -> SetBranchAddress("litEn_err",&LinkedLineStruct.litEn_err);
-		t1_old -> SetBranchAddress("mean",&LinkedLineStruct.mean);
-		t1_old -> SetBranchAddress("mean_err",&LinkedLineStruct.mean_err);
-		t1_old -> SetBranchAddress("sigma",&LinkedLineStruct.sigma);
-		t1_old -> SetBranchAddress("sigma_err",&LinkedLineStruct.sigma_err);
-		t1_old -> SetBranchAddress("beta",&LinkedLineStruct.beta);
-		t1_old -> SetBranchAddress("beta_err",&LinkedLineStruct.beta_err);
-		t1_old -> SetBranchAddress("ampl",&LinkedLineStruct.ampl);
-		t1_old -> SetBranchAddress("ampl_err",&LinkedLineStruct.ampl_err);
-		t1_old -> SetBranchAddress("tail",&LinkedLineStruct.tail);
-		t1_old -> SetBranchAddress("tail_err",&LinkedLineStruct.tail_err);
-		//t1_old -> SetBranchAddress("ratio",&LinkedLineStruct.ratio);
-		//t1_old -> SetBranchAddress("ratio_err",&LinkedLineStruct.ratio_err);
-		t1_old -> SetBranchAddress("step",&LinkedLineStruct.step);
-		t1_old -> SetBranchAddress("step_err",&LinkedLineStruct.step_err);
-		t1_old -> SetBranchAddress("cost",&LinkedLineStruct.cost);
-		t1_old -> SetBranchAddress("cost_err",&LinkedLineStruct.cost_err);
+		if(t1_old){
+			
+			
+			t1_old -> SetBranchAddress("massNum",&p_massN);
+			t1_old -> SetBranchAddress("element",&p_element);
+			t1_old -> SetBranchAddress("litEn",&LinkedLineStruct.litEn);
+			t1_old -> SetBranchAddress("litEn_err",&LinkedLineStruct.litEn_err);
+			t1_old -> SetBranchAddress("mean",&LinkedLineStruct.mean);
+			t1_old -> SetBranchAddress("mean_err",&LinkedLineStruct.mean_err);
+			t1_old -> SetBranchAddress("sigma",&LinkedLineStruct.sigma);
+			t1_old -> SetBranchAddress("sigma_err",&LinkedLineStruct.sigma_err);
+			t1_old -> SetBranchAddress("beta",&LinkedLineStruct.beta);
+			t1_old -> SetBranchAddress("beta_err",&LinkedLineStruct.beta_err);
+			t1_old -> SetBranchAddress("ampl",&LinkedLineStruct.ampl);
+			t1_old -> SetBranchAddress("ampl_err",&LinkedLineStruct.ampl_err);
+			t1_old -> SetBranchAddress("tail",&LinkedLineStruct.tail);
+			t1_old -> SetBranchAddress("tail_err",&LinkedLineStruct.tail_err);
+			//t1_old -> SetBranchAddress("ratio",&LinkedLineStruct.ratio);
+			//t1_old -> SetBranchAddress("ratio_err",&LinkedLineStruct.ratio_err);
+			t1_old -> SetBranchAddress("step",&LinkedLineStruct.step);
+			t1_old -> SetBranchAddress("step_err",&LinkedLineStruct.step_err);
+			t1_old -> SetBranchAddress("cost",&LinkedLineStruct.cost);
+			t1_old -> SetBranchAddress("cost_err",&LinkedLineStruct.cost_err);
 		
-		if( t1_old->GetBranch("chi2") ) t1_old -> SetBranchAddress("chi2", &LinkedLineStruct.chi2);
-		if( t1_old->GetBranch("chi2ndof") ) t1_old -> SetBranchAddress("chi2ndof", &LinkedLineStruct.chi2ndof);
+			if( t1_old->GetBranch("chi2") ) t1_old -> SetBranchAddress("chi2", &LinkedLineStruct.chi2);
+			if( t1_old->GetBranch("chi2ndof") ) t1_old -> SetBranchAddress("chi2ndof", &LinkedLineStruct.chi2ndof);
 		
-		t1_old -> SetBranchAddress("p_value",&LinkedLineStruct.p_value);
-		t1_old -> SetBranchAddress("p_value_ndof",&LinkedLineStruct.p_value_ndof);
+			if( t1_old->GetBranch("p_value") ) t1_old -> SetBranchAddress("p_value",&LinkedLineStruct.p_value);
+			if( t1_old->GetBranch("p_value_ndof") ) t1_old -> SetBranchAddress("p_value_ndof",&LinkedLineStruct.p_value_ndof);
 		
-		if( t1_old->GetBranch("histo") ) t1_old -> SetBranchAddress("histo", &LinkedLineStruct.histo);
-		if( t1_old->GetBranch("fit") ) t1_old -> SetBranchAddress("fit", &LinkedLineStruct.fit);
+			if( t1_old->GetBranch("histo") ) t1_old -> SetBranchAddress("histo", &LinkedLineStruct.histo);
+			if( t1_old->GetBranch("fit") ) t1_old -> SetBranchAddress("fit", &LinkedLineStruct.fit);
+		
+			for(int iLine=0; iLine<t1_old->GetEntries(); iLine++){
+				t1_old->GetEntry(iLine);
+				CalibLine tmpline = LinkedLineStruct;
+				OldCalibLinesVector.push_back(tmpline);
+			}
+		}
 	}
 	
 	
+	vector<CalibLine> SavedCalibLineVector;
 	
 	for(int iLine=0; iLine<nlines; iLine++){
 		string ans("");
@@ -178,28 +201,47 @@ int GatorCalibScriptBAT(string calibset, string configfile, bool recreate)
 		if(ans==string("y")  || ans==string("Y")){
 			if(doFitBAT(MCAhisto,CalibLinesVec[iLine])){
 				
-				LinkedLineStruct = CalibLinesVec[iLine];
-				t1->Fill();
-				t1->AutoSave();
-				
-			}else{
-				/*
-				if(t1_old){
-					for(int iEnt=0; iEnt<t1_old->GetEntries(); iEnt++){
-						t1_old->GetEntry(iEnt);
-						if( (massN==CalibLinesVec[iLine].massN) && (element==CalibLinesVec[iLine].element) && (litEn==CalibLinesVec[iLine].litEn)){
-							t1->Fill();
-							t1->AutoSave();
-							break;
-						}
-					}
+				if(recreate){
+					LinkedLineStruct = CalibLinesVec[iLine];
+					t1->Fill();
+					t1->AutoSave();
+				}else{
+					SavedCalibLineVector.push_back( CalibLinesVec[iLine] );
 				}
-				*/
+				
 			}
 		}
 	}
 	
-	if(t1) t1->Write();
+	
+	if(!recreate){
+		stringstream ss_tmp;
+		//Merge the old and the new list of the calib line
+		for(unsigned iLine=0; iLine<OldCalibLinesVector.size(); iLine++){
+			ss_tmp.str(""); ss_tmp << OldCalibLinesVector.at(iLine).massN << OldCalibLinesVector.at(iLine).element << ((int)(OldCalibLinesVector.at(iLine).litEn+0.5));
+			
+			string oldname = ss_tmp.str();
+			
+			bool updated = false;
+			for(unsigned kLine=0; kLine<SavedCalibLineVector.size(); kLine++){
+				ss_tmp.str(""); ss_tmp << SavedCalibLineVector.at(kLine).massN << SavedCalibLineVector.at(kLine).element << ((int)(SavedCalibLineVector.at(kLine).litEn+0.5));
+				
+				string newname = ss_tmp.str();
+				
+				if(newname==oldname) updated = true;
+			}
+			
+			if(!updated) SavedCalibLineVector.push_back( OldCalibLinesVector.at(iLine) );
+			
+		}
+		
+		for(unsigned iLine=0; iLine<SavedCalibLineVector.size(); iLine++){
+			LinkedLineStruct = SavedCalibLineVector.at(iLine);
+			t1->Fill();
+		}
+		t1->AutoSave();
+	}
+	
 	if(outfile){
 		outfile->Close();
 		delete outfile;

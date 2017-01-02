@@ -33,34 +33,41 @@ int main(int argc, char* argv[]){
 	
 	bool calibset_flag = false;
 	bool configfile_flag = false;
-	bool recreate = false;
+	bool recreate = false; //To recreat a file
+	bool update = false; //To force the update mode
 	
 	string calibset("");
 	string configfile("");
 	
     // parse switches
-    while((c = getopt(argc,argv,"d:f:rh")) != -1)
-    {
-      switch(c)	{
-        
-        case 'd': 
-          calibset_flag = true;
-          calibset = optarg;
-          break;
-        
-        case 'f':
-          configfile_flag = true;
-          configfile = optarg;
-          break;
-        
-        case 'r':
-          recreate = true;
-          break;
-				
-        case 'h':
+	while((c = getopt(argc,argv,"d:f:ruh")) != -1)
+	{
+		switch(c)
+		{
+			case 'd': 
+			calibset_flag = true;
+			calibset = optarg;
+			break;
+			
+			case 'f':
+			configfile_flag = true;
+			configfile = optarg;
+			break;
+			
+			case 'r':
+			recreate = true;
+			update = false;
+			break;
+			
+			case 'u':
+			update = true;
+			recreate = false;
+			break;
+			
+			case 'h':
 			usage();
 			return 0;
-          	break;
+			break;
         
         default:
 		cout << endl << argv[0] << ":ERROR --> \"-" << c << " doesn't match with any option!!!" << endl << endl;
@@ -75,7 +82,7 @@ int main(int argc, char* argv[]){
 		return(-1);
 	}
 	
-	return GatorCalibScriptBAT(calibset, configfile, recreate);
+	return GatorCalibScriptBAT(calibset, configfile, recreate, update);
 }
 
 void usage(){return;}

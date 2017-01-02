@@ -1,3 +1,5 @@
+#include <cstdlib>
+#include <unistd.h>
 #include <fstream>
 #include <iostream>
 #include <vector>
@@ -88,41 +90,55 @@ void sampleanalysis(){
 #endif
 
 	
+	string GatorSystem = getEnvVar("GATOR_SYS");
+	if(GatorSystem==string("")){
+		cerr << "\n\nERROR --> Environment variable \"GATOR_SYS\" is not set cannot continue.\n" << endl;
+		return;
+	}
+	string archivepathfile;
+	if( GatorSystem.at(GatorSystem.length()-1) != '/' ) GatorSystem = GatorSystem + string("/");
 	
 	
 // HARD-CODED input variables:
 	
-	string workdir = "/Users/francesco/PhD/Gator/analysis/samples/PMTs/CeramicStems_R11410-21/"; //Where the output files are placed
+	string workdir = GatorSystem + "screening/SAMPLE_NAME/"; //Where the output files are placed
 	
-	string datadir = "/Users/francesco/PhD/Gator/analysis/samples/PMTs/CeramicStems_R11410-21/SPE/"; //This could be BG SPE dir if "BGswitch" is false
+	//Directory where are the SPE files relative to the sample 
+	string datadir = GatorSystem + "screening/SAMPLE_NAME/SPE/"; //This could be BG SPE dir if "BGswitch" is false
 	
-	string backgroundSPEdir = "/Users/francesco/PhD/Gator/background/archive/2014/";
+	//Directory where are the SPE files relative to the background 
+	string backgroundSPEdir = GatorSystem + "background/archive/2014/";
 	//string backgroundSPEdir = "/Users/francesco/PhD/Gator/analysis/samples/PTFE_holders/SPE2/"; //This could be the directory of screening files done before activation (the Xe activation work for example)
 	//string backgroundSPEdir = "/Users/francesco/PhD/Gator/analysis/sessions/BG_137Cs/EmptyCavity/"; //6days. Keep here otherwise I forget!!!
 	//string backgroundSPEdir = "/Users/francesco/PhD/Gator/analysis/sessions/BG_137Cs/Cs+PMTholders/"; //6.8days. Keep here otherwise I forget!!!
 	
-	string configdir = "/Users/francesco/PhD/Gator/analysis/samples/PMTs/CeramicStems_R11410-21/";
+	string configdir = workdir;
 	string linesfilename = configdir + string("lines.list");
 	
-	string calibdir = "/Users/francesco/PhD/Gator/calibrations/archive/2013.07.01/";
-	string calfilename = "calibration.root";
+	string calibdir = GatorSystem + "calibrations/archive/2013.07.01/"; //This is relative to the sample
+	string calfilename = "calibration.root"; //Don't touch
 	calfilename = calibdir + calfilename;
 	
-	string calibdir_bg = "/Users/francesco/PhD/Gator/calibrations/archive/2013.12.23/";
+	string calibdir_bg = GatorSystem + "calibrations/archive/2013.12.23/"; //This is relative to the background
 	//string calibdir_bg = "/Users/francesco/PhD/Gator/calibrations/archive/2014.10.10/";
-	string calfilename_bg = "calibration.root";
+	string calfilename_bg = "calibration.root"; //Don't touch
 	calfilename_bg = calibdir_bg + calfilename_bg;
 	
 	
-	//Output files
-	string outfilename = "CeramicStems_R11410-21_STD.txt";
+	//Output files:
+	
+	//Results table in wiki format
+	string outfilename = "CeramicStems_R11410-21_STD.txt"; //Edit this
 	outfilename = workdir + outfilename;
 	
-	string efftabfilename = "CeramicStems_R11410-21_STD_efftab.txt";
+	//Table of BRs and efficiencies in wiki format
+	string efftabfilename = "CeramicStems_R11410-21_STD_efftab.txt"; //Edit this
 	efftabfilename = workdir + efftabfilename;
 	
+	//Everithing in the root format
 	string savefilename = "CeramicStems_R11410-21_STD.root";
 	savefilename = workdir + savefilename;
+	
 	
 	Double_t quantity = 6; //This is the sample weight in kg!!! Or can even be the number of the pieces (PMTs e.g.)
 
@@ -161,7 +177,7 @@ void sampleanalysis(){
 	analyser->DefaultIntervals();
 	
 	analyser->SetSampleQuntity(quantity);
-	analyser->SetQuantityUnit("PMT");
+	analyser->SetQuantityUnit("PMT"); //Edit this
 	
 	
 	
@@ -170,7 +186,7 @@ void sampleanalysis(){
 	analyser->WriteEffTable(efftabfilename);
 	analyser->WriteOutputTable(outfilename);
 	
-	analyser->DrawActivityPlots(c1);
+	analyser->DrawActivityPlots(c1); //Not working at the moment.
 
 	
 	theApp -> Run(kTRUE);

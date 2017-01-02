@@ -3,7 +3,7 @@
 
 #include <string>
 
-int GatorCalibScriptBAT(string calibset, string configfile, bool recreate=false);
+int GatorCalibScriptBAT(string calibset, string configfile, bool recreate=false, bool update=false);
 
 int GatorCalibScriptLL(string calibset, string configfile, bool recreate=false);
 
