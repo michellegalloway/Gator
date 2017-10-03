@@ -404,14 +404,14 @@ void GatorSpectra::MakeSteelSpectra()
 	leg->SetBorderSize(0);
 	
 	GatorSpectra::AddSpectrum("Sample 1", "NironitSS_2012/SPE/", "2012.10.04", kBlue-3);
-	GatorSpectra::AddSpectrum("Sample 4", "25cmSteelTube/SPE/", "2013.12.23", kRed-3);
+	GatorSpectra::AddSpectrum("Sample 4", "25cmSteelTube/SPE/", "2013.12.23", kRed+1);
 	GatorSpectra::AddSpectrum("Sample 5", "ssteel_pipes/SPE/", "2012.10.04", kGreen-2);
 	GatorSpectra::AddSpectrum("Sample 7", "NironitSS_2013/SPE/", "2013.12.23", kOrange+2);
 	GatorSpectra::AddSpectrum("Sample 17", "WTostoSS/SPE/", "2012.10.04", kCyan-3);
 	GatorSpectra::AddSpectrum("Sample 20", "SS_Alca_09072013/SPE/", "2013.07.01", kViolet+1);
 	
 	GatorSpectra::SetBkgdSpectrum("2012/", "2012.06.19");
-	
+	//GatorSpectra::SetBkgdSpectrum("2014/", "2013.12.23");
 	
 	unsigned nDs=SpectraVec.size();
 	for(unsigned iDs=0; iDs<nDs; iDs++){
