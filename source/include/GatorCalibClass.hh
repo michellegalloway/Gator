@@ -39,26 +39,27 @@ namespace Gator{
 		CalibLine* GetCalibLine(const string& linename);
 		
 		BCHistogramFitter* FitLine(const string& linename);
-		
+
 		bool SaveLines(const string& rootfile, bool update=true);
-		
+
 	private:
 		TH1D* loadSpe(const char* dir, double& aqtime);
-		
-		static double peakFitFunc(double* x, double* par);
-		
+
+		static double peakFitFuncA(double* x, double* par);
+		static double peakFitFuncB(double* x, double* par);
+
 		void amplInit(TH1D* histo, CalibLine& line);
 		void costInit(TH1D* histo, CalibLine& line);
 		void stepInit(TH1D* histo, CalibLine& line);
 		void sigmaInit(TH1D* histo, CalibLine& line);
-		
+
 		map<string, CalibLine*> fLinesmap;
-		
+
 		map<string, TH1D*> fSpectramap;
-		
+
 		TH1D* fHisto;
 	};
-	
-}
+
+}//End of 'Gator' namespace
 
 #endif

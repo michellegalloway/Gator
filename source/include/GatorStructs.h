@@ -128,8 +128,8 @@ typedef struct CalibLine
 	void SetElement(const string& _element){element = _element;};
 	void SetLitEnergy(const double& _litEn, const double& _litEnErr=0.0){litEn = _litEn; litEn_err = _litEnErr;};
 	void SetFitRange(const double& _MCAlowch, const double& _MCAupch){MCAlowch=_MCAlowch; MCAupch=_MCAupch;};
-	
-	void FitInit(const double& _mean, const double& _sigma, const double& _beta, const double& _ampl, const double& _tail, const double& _step, const double& _ratio, const double& _cost)
+
+	void FitInit(const double& _mean, const double& _sigma, const double& _beta, const double& _ampl, const double& _tail, const double& _step=0., const double& _ratio=0., const double& _cost=0.)
 	{
 		mean = _mean;
 		sigma = _sigma;
@@ -139,8 +139,9 @@ typedef struct CalibLine
 		step = _step;
 		ratio = _ratio;
 		cost = _cost;
-	}
-	
+	};
+
+
 	string linename;
 	string massN;
 	string element;

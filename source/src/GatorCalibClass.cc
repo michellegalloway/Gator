@@ -1,10 +1,17 @@
 #include "GatorCalibClass.hh"
 //#include "loadSPE.h"
 
-#include "TF1.h"
 #include "TCanvas.h"
-#include "TPad.h"
+#include "TApplication.h"
+#include "TF1.h"
+#include "TTree.h"
 #include "TMath.h"
+#include "TFile.h"
+#include "TGraphErrors.h"
+#include "TFitResultPtr.h"
+#include "TFitResult.h"
+#include "TPad.h"
+#include "TRandom3.h"
 
 #include "BAT/BCAux.h"
 #include "BAT/BCLog.h"
@@ -58,6 +65,7 @@ void Gator::GatorCalib::LoadCalibFiles(const string& sourcename, const string& d
 	cout << "Calibration dir: <" << dir << ">" << endl;
 	TH1D* MCAhisto = loadSpe(dir.c_str(), calibtime);
 	if(!MCAhisto) return;
+	MCAhisto->SetName((sourcename+string("_MCAspec")).c_str());
 	MCAhisto->SetTitle(";MCA channel; Counts");
 	MCAhisto->SetStats(kFALSE);
 	
@@ -67,7 +75,11 @@ void Gator::GatorCalib::LoadCalibFiles(const string& sourcename, const string& d
 
 TH1D* Gator::GatorCalib::SelectSpectrum(const string& sourcename)
 {
-	if( fSpectramap.find(sourcename)==fSpectramap.end()) fHisto = NULL; return fHisto;
+	if( fSpectramap.find(sourcename)==fSpectramap.end())
+	{
+		fHisto = NULL;
+		return fHisto;
+	}
 	
 	fHisto = fSpectramap[sourcename];
 	
@@ -102,66 +114,232 @@ Gator::CalibLine* Gator::GatorCalib::GetCalibLine(const string& linename)
 BCHistogramFitter* Gator::GatorCalib::FitLine(const string& linename)
 {
 	if( fLinesmap.find(linename)==fLinesmap.end()) return NULL;
-	
+
 	if(!fHisto) return NULL;
-	
+
 	CalibLine *line = fLinesmap[linename];
-	
-	
+
+
+	CalibLine intialValues(*line);
+
 	//Make a copy of the ROI of the original histo and put it in a new histogram
 	int firstbin = fHisto->FindBin(line->MCAlowch);
 	int lastbin = fHisto->FindBin(line->MCAupch);
 	int nbins = 1 + lastbin - firstbin;
 	double xmin = fHisto->GetBinLowEdge(firstbin);
 	double xmax = fHisto->GetBinLowEdge(lastbin+1);
-	
+
 	stringstream ss_histoname; ss_histoname.str(""); ss_histoname << (int)(line->litEn+0.5) << "keV" ;
 	TH1D* tmphisto = new TH1D(ss_histoname.str().c_str(),";Channel;Counts",nbins,xmin,xmax);
 	tmphisto -> SetDirectory(0);
-	
+
 	for(int bin=firstbin; bin <=lastbin; bin++){
 		double bincenter = fHisto->GetBinCenter(bin);
 		tmphisto->Fill(bincenter, fHisto->GetBinContent(bin));
 	}
-	
-	
+
+
 	//Start with the fitting process
-	TF1* ff_MCA = new TF1("ff_MCA", &Gator::GatorCalib::peakFitFunc, xmin, xmax, 7);
+	TF1* ff_MCA;
+	if(!line->fit){
+		ff_MCA = new TF1("ff_MCA", &Gator::GatorCalib::peakFitFuncB, xmin, xmax, 7);
+	}else{
+		ff_MCA = line->fit;
+	}
+
 	ff_MCA->SetParNames("Mean","Ampl","Tail","Sigma","Beta","Step","Constant");
 	//ff_MCA->SetParNames("Mean","Ampl","Ratio","Sigma","Beta","Constant");
-	
-	costInit(tmphisto,*line);
-	stepInit(tmphisto,*line);
-	amplInit(tmphisto,*line);
-	//sigmaInit(tmphisto,line);
-	
-	
-	ff_MCA -> SetParLimits(0,line->MCAlowch,line->MCAupch);
-	ff_MCA -> SetParLimits(1,0.,2*line->ampl); //Gaussian strenght
-	//ff_MCA -> SetParLimits(2,0.,3*line->ampl); //Tail strenght
-	//ff_MCA -> SetParLimits(2,0.,1.); //Tail ratio
-	ff_MCA -> SetParLimits(3,0,2.5*line->sigma);
-	ff_MCA -> SetParLimits(4,0.,10*line->beta);
-	ff_MCA -> SetParLimits(5,0.,5*line->step);
-	ff_MCA -> SetParLimits(6,0.,2*line->cost);
-	
-	
-	
+
+	int nPars = ff_MCA->GetNpar();
+	vector<bool> fixedpars(nPars,false);
+
+
+	bool tail_flag = true;
+	bool reuse_flag = false;
+
+START:
+
+	string ans;
+
+	if(!reuse_flag){
+		while(true){
+			cout << "\nDo you want to use the low energy tail for the fit?\n" << "[y/n] > ";
+			getline(cin,ans);
+			if(ans!=string("y")  || ans!=string("Y") || ans!=string("n") || ans!=string("N")) break;
+		}
+
+		if(ans==string("y") || ans==string("Y")){
+			tail_flag = true;
+		}else{
+			tail_flag = false;
+		}
+	}else{
+		tail_flag = true;
+	}
+
+	//This must be initialized with this order
+	if(!reuse_flag){
+		costInit(tmphisto,*line);
+		stepInit(tmphisto,*line);
+		amplInit(tmphisto,*line);
+		//sigmaInit(tmphisto,line);
+	}
+
+
+
+	//Set initial parameters
+	ff_MCA -> SetParameter(0, line->mean);
+	ff_MCA -> SetParameter(1, line->ampl);
+	if(tail_flag){
+		ff_MCA -> SetParameter(2, line->tail);
+		fixedpars.at(2) = false;
+	}else{
+		ff_MCA -> FixParameter(2, 0.0);
+		fixedpars.at(2) = true;
+	}
+	ff_MCA -> SetParameter(3, line->sigma);
+	if(tail_flag){
+		ff_MCA -> SetParameter(4, line->beta);
+		fixedpars.at(4) = false;
+	}else{
+		ff_MCA -> FixParameter(4, 0.0);
+		fixedpars.at(4) = true;
+	}
+	if(line->step>0.0){
+		ff_MCA -> SetParameter(5, line->step);
+	}else{
+		ff_MCA -> SetParameter(5, 1e-80);
+	}
+
+
+
+	if(reuse_flag){//It means that the previous fit iteration was performed without the tail
+		double val, err, min, max;
+
+		if( (line->mean_err/line->mean)<1e-3 ){
+			//If the error is too small I allow for a variation of 0.1% around the the previous fit value
+			ff_MCA -> SetParLimits(0, 0.999*line->mean, 1.001*line->mean );
+		}else{
+			min = TMath::Max(line->mean-3*line->mean_err, xmin);
+			max = TMath::Min(line->mean+3*line->mean_err, xmax);
+			ff_MCA -> SetParLimits(0, min, max ); //Mean
+		}
+
+		{//The amplitude is allowed to variate for a large range determined from the previous fit, but cannot get the 0 value!
+			min = TMath::Max(line->ampl-3*line->ampl_err, 1e-80);
+			ff_MCA -> SetParLimits(1, min, line->ampl+3*line->ampl_err ); //Gaussian amplitude
+		}
+
+		ff_MCA -> SetParLimits(2, 1e-80, 1.); //Tail ratio
+
+		{//The width is allowed to variate for a 10% around it's previous fit value
+			ff_MCA -> SetParLimits(3, 0.9*line->sigma, 1.1*line->sigma ); //Sigma
+		}
+
+		ff_MCA -> SetParLimits(4, 1e-80, 10*line->beta ); //Beta (or Gamma when parametrization B is used)
+
+		if( !(line->step>0.0) ){
+			min = TMath::Max(line->step-3*line->step_err, 1e-80);
+			ff_MCA -> SetParLimits(5, min, line->step+3*line->step_err ); //Step amplitude	
+		}else{
+			ff_MCA -> SetParLimits(5, 1e-80, line->ampl/2 );//Step amplitude
+		}
+
+		if(line->cost_err/line->cost<1e-2){
+			//The constant is allowed to variate for a 1% of the previous fit if the error is tto small
+			ff_MCA -> SetParLimits(6, 0.99*line->cost, 1.01*line->cost ); //Constant
+		}else{
+			ff_MCA -> SetParLimits(6, line->cost-3*line->cost_err, line->cost+3*line->cost_err ); //Constant
+		}
+
+
+	}
+	else{
+
+		ff_MCA -> SetParLimits(0, 0.99*line->mean, 1.01*line->mean ); //Gaussian center
+
+		ff_MCA -> SetParLimits(1, 1e-80, 10*line->ampl ); //Gaussian Amplitude
+
+		//ff_MCA -> SetParLimits(2, 0.0, std::numeric_limits<double>::infinity() ); //Tail strenght
+
+		if(tail_flag) ff_MCA -> SetParLimits(2, 1e-80, 1.); //Tail ratio
+
+		ff_MCA -> SetParLimits(3, 0.9*line->sigma, 1.1*line->sigma );
+
+		if(tail_flag) ff_MCA -> SetParLimits(4, 1e-80, 10*line->beta ); //Beta
+
+		if( line->step>0.0 ){
+			ff_MCA->SetParLimits(5, 1e-80, 10*line->step );//Step
+		}else{
+			ff_MCA->SetParLimits(5, 1e-80, line->ampl/2 );//Step
+		}
+
+		ff_MCA -> SetParLimits(6, 1e-80, 10*line->cost );
+	}
+
+
+
 	BCLog::SetLogLevel(BCLog::debug);
-	
-	BCHistogramFitter *histofitter = new BCHistogramFitter(tmphisto, ff_MCA);
-	
+
+	BCHistogramFitter *histofitter = new BCHistogramFitter( ss_histoname.str().c_str(), tmphisto, ff_MCA );
+
 	// set options for MCMC
-	//fHistofitter -> MCMCSetFlagPreRun (false);
-	//fHistofitter->MCMCSetPrecision(BCEngineMCMC::kLow);
-	//fHistofitter->SetMarginalizationMethod(BCIntegrate::kMargMetropolis);
-	//fHistofitter->MCMCSetNIterationsPreRunMin(100000);
+	//histofitter -> MCMCSetFlagPreRun (false);
+	//histofitter->MCMCSetPrecision(BCEngineMCMC::kLow);
+	//histofitter->SetMarginalizationMethod(BCIntegrate::kMargMetropolis);
+	//histofitter->MCMCSetNIterationsPreRunMin(100000);
 	histofitter->MCMCSetNIterationsRun(100000);
-	
-	
+	//histofitter->MCMCSetMinimumEfficiency(0.05);
+	//histofitter->MCMCSetMaximumEfficiency(0.2);
+
+
+
+	int nChains = histofitter->MCMCGetNChains();//This depends on the precision
+
+	//Used to generate random numbers between 0 and 1
+	TRandom3 RdmGen(0);
 	//set initial value of parameters
-	vector<double> paramsval;
-	
+	vector<double> paramsval(nChains*nPars);
+	for(int iChain = 0; iChain<nChains; iChain++){
+		for(int iPar=0; iPar<nPars; iPar++){
+
+			double val;
+			BCParameter *Par = histofitter->GetParameter(iPar);
+
+			double parmin, parmax;
+			ff_MCA->GetParLimits(iPar, parmin, parmax);
+			if(fixedpars.at(iPar) == true){
+				val = ff_MCA->GetParameter(iPar);
+				Par->SetLimits(val,val);
+				Par->Fix(val);
+				cout << "\nParameter <" << Par->GetName() << "> (fixed):" << endl;
+				cout << "  Min = " << Par->GetLowerLimit() << endl;
+				cout << "  Val = " << val << endl;
+				cout << "  Max = " << Par->GetUpperLimit() << endl;
+			}else{
+				if(Par->Fixed()) Par->Unfix();
+				ff_MCA->GetParLimits(iPar, parmin, parmax);
+				val = parmin + RdmGen.Rndm()*(parmax-parmin);//Value between 0 and the parameter upper limit
+
+				cout << "\nParameter <" << Par->GetName() << ">:" << endl;
+				cout << "  Min = " << Par->GetLowerLimit() << endl;
+				cout << "  Val = " << val << endl;
+				cout << "  Max = " << Par->GetUpperLimit() << endl;
+			}
+
+
+
+
+			//This is for the case where the upper limit is infinite. r=0.5 will correspond to the initialized value.
+			//double r = RdmGen.Rndm();//Value between 0 and 1
+			//double val = ff_MCA->GetParameter(iPar)*r/(1-r);
+
+			paramsval.at(iChain*nPars+iPar) = val;
+		}
+	}
+	histofitter->MCMCSetInitialPositions(paramsval);
+
+
 	cout <<"\nMean init value: " << line->mean << endl;
 	cout <<"\tLimits: (" << histofitter->GetParameter("Mean")->GetLowerLimit() << " , " << histofitter->GetParameter("Mean")->GetUpperLimit() << ")" << endl;
 	cout <<"\nAmpl init value: " << line->ampl << endl;
@@ -176,24 +354,12 @@ BCHistogramFitter* Gator::GatorCalib::FitLine(const string& linename)
 	cout <<"\tLimits: (" << histofitter->GetParameter("Step")->GetLowerLimit() << " , " << histofitter->GetParameter("Step")->GetUpperLimit() << ")" << endl;
 	cout <<"\nConstant init value: " << line->cost << endl;
 	cout <<"\tLimits: (" << histofitter->GetParameter("Constant")->GetLowerLimit() << " , " << histofitter->GetParameter("Constant")->GetUpperLimit() << ")" << endl;
-	
-	int nPars = paramsval.size();
-	int nChains = histofitter->MCMCGetNChains();//This depends on the precision
-	
-	for(int chain = 0; chain<nChains; chain++){
-		paramsval.push_back(line->mean);
-		paramsval.push_back(line->ampl);
-		paramsval.push_back(line->tail);
-		paramsval.push_back(line->sigma);
-		paramsval.push_back(line->beta);
-		paramsval.push_back(line->step);
-		paramsval.push_back(line->cost);
-	}
-	histofitter->MCMCSetInitialPositions(paramsval);
-	
-	
+
+
+	histofitter->SetFlagIntegration(false);
 	histofitter->Fit();
-	
+	histofitter->CalculatePValueLikelihood(histofitter->GetBestFitParameters());
+
 	line->mean = histofitter->GetBestFitParameter(0);
 	line->mean_err = histofitter->GetBestFitParameterError(0);
 	line->ampl = histofitter->GetBestFitParameter(1);
@@ -212,25 +378,78 @@ BCHistogramFitter* Gator::GatorCalib::FitLine(const string& linename)
 	line->cost_err = histofitter->GetBestFitParameterError(6);
 	line->p_value = histofitter->GetPValue();
 	line->p_value_ndof = histofitter->GetPValueNDoF();
-	
+
+	line->histo=tmphisto;
+	line->fit = ff_MCA;
+
 	histofitter->DrawFit("", true); // draw with a legend
-	
+
+
 	//Open a canvas to inspect the correlation of the beta and of the tail relative amplitude
 	TPad *old_pad = (TPad*)gPad->cd();
-	
+
 	TCanvas *c2 = new TCanvas("c2");
 	c2 -> cd();
-	
+
 	(histofitter->GetMarginalized("Tail","Beta"))->Draw();
-	
-	
-	if(ff_MCA) delete ff_MCA;
-	if(tmphisto) line->histo=tmphisto;
-	if(c2) delete c2;
-	
+
 	old_pad->cd();
-	
-	return histofitter;
+
+
+	while(true){
+		cout << "\nDo you want to keep this fit result for " << line->massN << "-" << line->element << " line at " << line->litEn << " keV? [y/n]\n" << "> ";
+		getline(cin,ans);
+		if(ans!=string("y")  || ans!=string("Y") || ans!=string("n") || ans!=string("N")) break;
+	}
+
+
+
+	if(ans==string("y") || ans==string("Y")){
+		return histofitter;
+	}else{
+
+		while(true){
+			cout << "\nDo you want to repeat the fit?\n" << "[y/n] > ";
+			getline(cin,ans);
+			if(ans!=string("y")  || ans!=string("Y") || ans!=string("n") || ans!=string("N")) break;
+		}
+
+		if(ans==string("y") || ans==string("Y")){
+			cout << "\nCurrent parameters:\n" << endl;
+
+			cout << "Mean         : " << line->mean << " +- " << line->mean_err << endl;
+			cout << "Amplitude    : " << line->ampl << " +- " << line->ampl_err << endl;
+			cout << "Tail (fixed) : " << line->tail << " +- " << line->tail_err << endl;
+			cout << "Sigma        : " << line->sigma << " +- " << line->sigma_err << endl;
+			cout << "Beta (fixed) : " << line->beta << " +- " << line->beta_err << endl;
+			cout << "Step         : " << line->step << " +- " << line->step_err << endl;
+			cout << "Constant     : " << line->cost << " +- " << line->cost_err << endl;
+
+
+			if(!tail_flag){
+				while(true){
+					cout << "\nDo you want to reuse the current parameters?\n" << "[y/n] > ";
+					getline(cin,ans);
+					if(ans!=string("y")  || ans!=string("Y") || ans!=string("n") || ans!=string("N")) break;
+				}
+
+				if(ans==string("y") || ans==string("Y")){
+					reuse_flag = true;
+				}else{
+					reuse_flag = false;
+				}
+			}
+
+			//The parameters are kept only when the preliminary fit was performed without the tail part
+			line->tail = intialValues.tail;
+			line->beta = intialValues.beta;
+
+			goto START;
+		}
+
+		delete histofitter;
+		return NULL;
+	}
 }
 
 
@@ -364,8 +583,8 @@ bool Gator::GatorCalib::SaveLines(const string& rootfile, bool update)
 	t1 -> Branch("p_value",&tmp_line.p_value,"p_value/D");
 	t1 -> Branch("p_value_ndof",&tmp_line.p_value_ndof,"p_value_ndof/D");
 	
-	t1 -> Branch("histo", "TH1D", &tmp_line.histo);
-	
+	t1 -> Branch("histo", "TH1D", &tmp_line.histo, 32000, 0);
+	t1 -> Branch("fit", "TF1", &tmp_line.fit, 32000, 0);
 	
 	map<string, CalibLine*>::iterator It;
 	for(It=fLinesmap.begin(); It!=fLinesmap.end(); It++)
@@ -381,12 +600,14 @@ bool Gator::GatorCalib::SaveLines(const string& rootfile, bool update)
 }
 
 
+
 TH1D* Gator::GatorCalib::loadSpe(const char* dir, double& aqtime)
 {
 	//-------------------------------------------------//
 	// Load of the sample histogram from the SPE files //
 	// this version is only for calibration files      //
 	//-------------------------------------------------//
+
 
 	string tmpstr("");
 	stringstream tmpsstr;
@@ -514,9 +735,9 @@ TH1D* Gator::GatorCalib::loadSpe(const char* dir, double& aqtime)
 
 
 
-double Gator::GatorCalib::peakFitFunc(double* x, double* par){
+double Gator::GatorCalib::peakFitFuncA(double* x, double* par){
 	
-	Double_t E,P,T,A,sigma,beta,S,C;
+	double E,P,T,A,sigma,beta,S,C;
 	
 	E = x[0];
 	
@@ -528,12 +749,46 @@ double Gator::GatorCalib::peakFitFunc(double* x, double* par){
 	S = par[5];
 	C = par[6];
 	
-	return A*( TMath::Exp( -pow((E-P)/sigma,2)/2 )/sigma + T*TMath::Exp( pow(sigma/beta,2)/2 + beta*(E-P) )*TMath::Erfc( ((E-P)*beta+pow(sigma,2) )/(sqrt(2)*sigma*beta) ) + S*TMath::Erfc((E-P)/(sqrt(2)*sigma)) ) + C;
+	double gauss = TMath::Exp( -pow((E-P)/sigma,2)/2 );
+	//double tail = TMath::Exp( (pow(sigma/beta,2)/2) + ((E-P)/beta) ) * TMath::Erfc(  ( (E-P)*beta+pow(sigma,2) )/( sqrt(2)*sigma*beta )  );
+	//double tail = TMath::Exp( ((E-P)/beta) ) * TMath::Erfc(  ( (E-P)*beta+pow(sigma,2) )/( sqrt(2)*sigma*beta )  );
+	double tail = TMath::Exp( ((E-P)/beta) ) * TMath::Erfc( (((E-P)/sigma) + (sigma/beta))/sqrt(2) );
+	double step = TMath::Erfc((E-P)/(sqrt(2)*sigma));
+	
+	return A*(gauss + T*tail) + S*step + C;
+	
+	//return A*( TMath::Gaus(E,P,sigma) + R * TMath::Exp(beta*(E-P))*TMath::Erfc((E-(P-beta*sigma*sigma))/(sqrt(2)*sigma)) ) + C;
+}
+//////////////////////////////////////////////////////////////////////////////////
+
+
+double Gator::GatorCalib::peakFitFuncB(double* x, double* par){
+	
+	double E,P,T,A,sigma,Gamma,S,C;
+	
+	E = x[0];
+	
+	P = par[0];
+	A = par[1];
+	T = par[2];
+	sigma = par[3];
+	Gamma = par[4];
+	S = par[5];
+	C = par[6];
+	
+	double gauss = TMath::Gaus( E,P,sigma );
+	//double tail = TMath::Exp( (pow(sigma/beta,2)/2) + ((E-P)/beta) ) * TMath::Erfc(  ( (E-P)*beta+pow(sigma,2) )/( sqrt(2)*sigma*beta )  );
+	//double tail = TMath::Exp( ((E-P)/beta) ) * TMath::Erfc(  ( (E-P)*beta+pow(sigma,2) )/( sqrt(2)*sigma*beta )  );
+	double tail = TMath::Exp( ((E-P)*Gamma) ) * TMath::Erfc( ( E-(P-Gamma*sigma*sigma) )/(sqrt(2)*sigma) );
+	double step = TMath::Erfc( (E-P)/(sqrt(2)*sigma) );
+	
+	//return A*((1-T)*gauss + T*tail) + S*step + C;
+	return A*(gauss + T*tail) + S*step + C;
 	
 	//return A*( TMath::Gaus(E,P,sigma) + R * TMath::Exp(beta*(E-P))*TMath::Erfc((E-(P-beta*sigma*sigma))/(sqrt(2)*sigma)) ) + C;
 	
 }
-//////////////////////////////////////////////////////////////////////////////////
+
 
 
 //----------Initialization functions for parameters-----------//
