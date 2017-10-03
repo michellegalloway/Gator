@@ -1,24 +1,28 @@
+#include "loadSPE.h"
+
+#include "TH1D.h"
+#include "TMath.h"
+#include "TDatime.h"
+
 #include <vector>
 #include <fstream>
 #include <sstream>
 #include <iostream>
 #include <cstdlib>
 
-#include <TH1D.h>
-#include <TMath.h>
-#include <TDatime.h>
-
 using namespace std;
 
-
-
-TH1D* loadSPE(const char* dir, Double_t& aqtime)
+#if defined(__CLING__)
+TH1D* Gator::loadSPE(const char* dir, double& aqtime)
+#else
+TH1D* loadSPE(const char* dir, double& aqtime)
+#endif
 {
 
-	//-------------------------------------------------\\	
-	// Load of the sample histogram from the SPE files \\
-	// this version is for data files                  \\
-	//-------------------------------------------------\\
+	//-------------------------------------------------//
+	// Load of the sample histogram from the SPE files //
+	// this version is for data files                  //
+	//-------------------------------------------------//
 
 	string tmpstr("");
 	stringstream tmpsstr;
@@ -144,7 +148,11 @@ TH1D* loadSPE(const char* dir, Double_t& aqtime)
 //------------------------------------------//
 
 
+#if defined(__CLING__)
+TH1D* Gator::loadSPE3(Char_t* filename, Double_t& time, UInt_t unixtime, string* descr_str)
+#else
 TH1D* loadSPE3(Char_t* filename, Double_t& time, UInt_t unixtime, string* descr_str)
+#endif
 {//This pointer can be set to 0 if description is not wanted
 
 	//------------------------------------------------------//	
@@ -266,14 +274,17 @@ TH1D* loadSPE3(Char_t* filename, Double_t& time, UInt_t unixtime, string* descr_
 }
 //------------------------------------------//
 
-
+#if defined(__CLING__)
+TH1D* Gator::loadSpe(const char* dir, Double_t& aqtime)
+#else
 TH1D* loadSpe(const char* dir, Double_t& aqtime)
+#endif
 {
 
-	//-------------------------------------------------\\	
-	// Load of the sample histogram from the SPE files \\
-	// this version is only for calibration files      \\
-	//-------------------------------------------------\\
+	//-------------------------------------------------//
+	// Load of the sample histogram from the SPE files //
+	// this version is only for calibration files      //
+	//-------------------------------------------------//
 
 	string tmpstr("");
 	stringstream tmpsstr;
@@ -398,8 +409,11 @@ TH1D* loadSpe(const char* dir, Double_t& aqtime)
 }
 //------------------------------------------//
 
-
+#if defined(__CLING__)
+TH1D* Gator::loadSingleSPE(const char* name, Double_t& aqtime)
+#else
 TH1D* loadSingleSPE(const char* name, Double_t& aqtime)
+#endif
 {
 	
 	Int_t nchans;
@@ -451,3 +465,5 @@ TH1D* loadSingleSPE(const char* name, Double_t& aqtime)
 	return histoMCA;
 	
 }
+
+

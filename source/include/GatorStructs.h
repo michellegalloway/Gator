@@ -115,6 +115,33 @@ typedef struct CalibLine
 		fit = NULL;
 	}
 	
+	CalibLine(const string& _lname, const string& _massnum=string(""), const string& _element=string(""), const double& _litEn=0.0, const double& _litEnErr=0.0)
+	{
+		linename = _lname;
+		massN = _massnum;
+		element = _element;
+		litEn = _litEn;
+		litEn_err = _litEnErr;
+	};
+	
+	void SetMassNum(const string& _massnum){massN = _massnum;};
+	void SetElement(const string& _element){element = _element;};
+	void SetLitEnergy(const double& _litEn, const double& _litEnErr=0.0){litEn = _litEn; litEn_err = _litEnErr;};
+	void SetFitRange(const double& _MCAlowch, const double& _MCAupch){MCAlowch=_MCAlowch; MCAupch=_MCAupch;};
+	
+	void FitInit(const double& _mean, const double& _sigma, const double& _beta, const double& _ampl, const double& _tail, const double& _step, const double& _ratio, const double& _cost)
+	{
+		mean = _mean;
+		sigma = _sigma;
+		beta = _beta;
+		ampl = _ampl;
+		tail = _tail;
+		step = _step;
+		ratio = _ratio;
+		cost = _cost;
+	}
+	
+	string linename;
 	string massN;
 	string element;
 	double litEn;
@@ -150,6 +177,8 @@ typedef struct CalibLine
 	TF1* fit;
 	
 }CalibLine;
+
+
 
 
 typedef struct RateStruct

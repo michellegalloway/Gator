@@ -1,11 +1,22 @@
 #include "GatorCalibClass.hh"
+//#include "loadSPE.h"
 
+#include "TF1.h"
+#include "TCanvas.h"
+#include "TPad.h"
+#include "TMath.h"
 
-//Functions that is better to be included in a proper namespace
-namespace Gator{
-#include "loadSPE.cc"
-}
+#include "BAT/BCAux.h"
+#include "BAT/BCLog.h"
+#include "BAT/BCHistogramFitter.h"
+#include "BAT/BCParameter.h"
+#include "BAT/BCH2D.h"
 
+#include <vector>
+#include <fstream>
+#include <sstream>
+#include <iostream>
+#include <cstdlib>
 
 Gator::GatorCalib::GatorCalib()
 {
@@ -13,7 +24,7 @@ Gator::GatorCalib::GatorCalib()
 }
 
 
-void Gator::GatorCalib::AddLine(const CalibLine *line)
+void Gator::GatorCalib::AddLine(CalibLine *line)
 {
 	if(line->linename == string(""))
 	{
@@ -104,7 +115,7 @@ BCHistogramFitter* Gator::GatorCalib::FitLine(const string& linename)
 	double xmin = fHisto->GetBinLowEdge(firstbin);
 	double xmax = fHisto->GetBinLowEdge(lastbin+1);
 	
-	stringstream ss_histoname; ss_histoname.str(""); ss_histoname << (int)(line.litEn+0.5) << "keV" ;
+	stringstream ss_histoname; ss_histoname.str(""); ss_histoname << (int)(line->litEn+0.5) << "keV" ;
 	TH1D* tmphisto = new TH1D(ss_histoname.str().c_str(),";Channel;Counts",nbins,xmin,xmax);
 	tmphisto -> SetDirectory(0);
 	
@@ -115,7 +126,7 @@ BCHistogramFitter* Gator::GatorCalib::FitLine(const string& linename)
 	
 	
 	//Start with the fitting process
-	TF1* ff_MCA = new TF1("ff_MCA", peakFitFunc, xmin, xmax, 7);
+	TF1* ff_MCA = new TF1("ff_MCA", &Gator::GatorCalib::peakFitFunc, xmin, xmax, 7);
 	ff_MCA->SetParNames("Mean","Ampl","Tail","Sigma","Beta","Step","Constant");
 	//ff_MCA->SetParNames("Mean","Ampl","Ratio","Sigma","Beta","Constant");
 	
@@ -205,7 +216,7 @@ BCHistogramFitter* Gator::GatorCalib::FitLine(const string& linename)
 	histofitter->DrawFit("", true); // draw with a legend
 	
 	//Open a canvas to inspect the correlation of the beta and of the tail relative amplitude
-	TPad *old_pad = gPad;
+	TPad *old_pad = (TPad*)gPad->cd();
 	
 	TCanvas *c2 = new TCanvas("c2");
 	c2 -> cd();
@@ -254,7 +265,7 @@ bool Gator::GatorCalib::LoadLinesFromTree(const string& rootfile)
 	CalibLine tmp_line;
 	
 	t1 -> SetBranchAddress("massNum",&tmp_line.massN);
-	t1 -> SetBranchAddress("element",&tmp_line.pelement);
+	t1 -> SetBranchAddress("element",&tmp_line.element);
 	t1 -> SetBranchAddress("litEn",&tmp_line.litEn);
 	t1 -> SetBranchAddress("litEn_err",&tmp_line.litEn_err);
 	t1 -> SetBranchAddress("mean",&tmp_line.mean);
@@ -315,7 +326,7 @@ bool Gator::GatorCalib::SaveLines(const string& rootfile, bool update)
 	if(!fLinesmap.size()) return false;
 	
 	
-	TFile *outfile;
+	TFile *outfile=NULL;
 	
 	if(update)
 	{
@@ -331,7 +342,7 @@ bool Gator::GatorCalib::SaveLines(const string& rootfile, bool update)
 	CalibLine tmp_line;
 	
 	t1 -> Branch("massNum","string",&tmp_line.massN);
-	t1 -> Branch("element","string",&tmp_line.pelement);
+	t1 -> Branch("element","string",&tmp_line.element);
 	t1 -> Branch("litEn",&tmp_line.litEn,"litEn/D");
 	t1 -> Branch("litEn_err",&tmp_line.litEn_err,"litEn_err/D");
 	t1 -> Branch("mean",&tmp_line.mean,"mean/D");
@@ -370,7 +381,133 @@ bool Gator::GatorCalib::SaveLines(const string& rootfile, bool update)
 }
 
 
+TH1D* Gator::GatorCalib::loadSpe(const char* dir, double& aqtime)
+{
+	//-------------------------------------------------//
+	// Load of the sample histogram from the SPE files //
+	// this version is only for calibration files      //
+	//-------------------------------------------------//
 
+	string tmpstr("");
+	stringstream tmpsstr;
+	
+	aqtime=0;
+	
+	Double_t time_tmp=0, entry=0; 
+	Int_t channel=0;
+	
+	vector<Double_t>* entries_tmp = new vector<Double_t>;
+	vector<Double_t>* entries = new vector<Double_t>;
+	
+	string dirname(dir);
+	string command("ls ");
+	vector<string> spelist;
+	
+	command += dirname;
+	command += string("*.Spe > tmplist");
+	
+	system(command.c_str());
+	ifstream tmplist("tmplist");
+	
+	while(getline(tmplist,tmpstr)){
+		spelist.push_back(tmpstr);
+	}
+	
+	int nSpe = spelist.size();
+	
+	system("rm -f tmplist");
+	 
+	ifstream spe;
+	
+	
+	
+	for(int iSpe=0; iSpe<nSpe; iSpe++){
+		
+		string infilename = spelist.at(iSpe);
+		cout << "\nLoading file <" << infilename << ">" << endl;
+		
+		spe.open(infilename.c_str());
+		
+		if (spe.fail()){
+			cout << "Error: can't open the file <" << infilename.c_str() << ">\nSkipping the entry!	" << endl;
+			continue;//Skip the loop
+		}
+		
+		entries_tmp->clear();
+		
+		int channels;
+		
+		for (Int_t line = 0; line<=11; line++) {
+			//Here I go ahead in the file discarding the header lines
+			getline(spe,tmpstr);
+			
+			if (line==9){//Acquisition live time (the first of the two numbers)
+				//cout << "Content of \"tmpstr\" at line 9 is: " << tmpstr << endl;
+				tmpsstr.str("");
+				tmpsstr << tmpstr;
+				tmpsstr >> tmpstr;
+				time_tmp = atof(tmpstr.c_str());
+				cout << "Acquisition time: " << time_tmp << " secs" << endl;
+			}
+			
+			if (line==11){//Info on how many channels are acquired (the second of the two numbers)
+				//cout << "Content of \"tmpstr\" at line 11 is: " << tmpstr << endl;
+				tmpsstr.str("");
+				tmpsstr << tmpstr;
+				tmpsstr >> tmpstr;
+				tmpsstr >> tmpstr;
+				channels = atoi(tmpstr.c_str());
+				channels++;//The number of channels is 1 more of the last channel number
+				cout << "Number of channels: " << channels << endl;
+			}
+		}
+		
+		//Loading the ADC counts from the file and put them in the vector entry_tmp
+		while (spe.good()) {
+			spe >> tmpstr;
+			entry = atof(tmpstr.c_str());
+			if(iSpe==0){
+				entries -> push_back(entry);
+				if (entries->size()==channels) break;
+			} else {
+				entries_tmp -> push_back(entry);
+				if (entries_tmp->size()==channels) break;
+			}
+				
+			if (!spe.good()) break;
+		}
+		
+		if(iSpe==0){
+			cout << "Data vector size: " << entries->size() << endl;
+		}else{
+			cout << "Data vector size: " << entries_tmp->size() << endl;
+			for(Int_t i=0; i<entries_tmp->size(); i++){
+				(*entries)[i] += entries_tmp->at(i);
+			}
+		}
+		
+		spe.close();
+		
+		aqtime += time_tmp; //Stored total total acquisition time
+		
+	}
+	
+	//Create and fill the histogram
+	TH1D* histoMCA = new TH1D("histoMCA","Spectrum ADC",entries->size(),1,entries_tmp->size());
+	for(Int_t i=0; i<entries->size(); i++){
+		histoMCA->Fill(i+1,entries->at(i));
+	}
+	
+	//-------------------------------------------------------------//	
+	// Finished to load of the sample histogram from the SPE files //
+	//-------------------------------------------------------------//
+
+	
+	delete entries_tmp;
+	delete entries;
+	
+	return histoMCA;
+}
 
 
 
@@ -476,7 +613,7 @@ void Gator::GatorCalib::sigmaInit(TH1D* histo, CalibLine& line){
 	Double_t lastbin = histo->FindBin(line.MCAupch);
 	
 	double max =0.;
-	int maxbin;
+	int maxbin = firstbin;
 	
 	for(int bin=firstbin; bin<=lastbin; bin++){
 		if(max < histo->GetBinContent(bin)){
@@ -503,5 +640,9 @@ void Gator::GatorCalib::sigmaInit(TH1D* histo, CalibLine& line){
 }
 /////////////////////////////////////////////////////////////////////////////////////
 
+
+#if defined(__CLING__)
+//#include "loadSPE.cc"
+#endif
 
 

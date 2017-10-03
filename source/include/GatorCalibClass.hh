@@ -4,18 +4,21 @@
 /*
 The classes in this header are designed to be used interactively with root cling interpreter
 */
-
-#include <string>
-#include <vector>
-#include <map>
+#include "loadSPE.h"
 
 #include "TFile.h"
 #include "TTree.h"
 #include "TCanvas.h"
 #include "TH1D.h"
 
+#include <string>
+#include <vector>
+#include <map>
+
 
 using namespace std;
+
+class BCHistogramFitter;
 
 namespace Gator{
 	
@@ -28,20 +31,21 @@ namespace Gator{
 		void LoadCalibFiles(const string& sourcename, const string& dir);
 		TH1D* SelectSpectrum(const string& sourcename);
 		TH1D* DrawSpectrum(const string& opt=string(""));
-		void AddLine(const CalibLine *line);
+		void AddLine(CalibLine *line);
 		
-		void LoadLinesFromTree(const string& rootfile);
+		bool LoadLinesFromTree(const string& rootfile);
 		
 		TH1D* GetSpectrum(const string& sourcename);
 		CalibLine* GetCalibLine(const string& linename);
 		
 		BCHistogramFitter* FitLine(const string& linename);
 		
-		bool SaveLines(const string& rootfile);
+		bool SaveLines(const string& rootfile, bool update=true);
 		
 	private:
+		TH1D* loadSpe(const char* dir, double& aqtime);
 		
-		double peakFitFunc(double* x, double* par);
+		static double peakFitFunc(double* x, double* par);
 		
 		void amplInit(TH1D* histo, CalibLine& line);
 		void costInit(TH1D* histo, CalibLine& line);
