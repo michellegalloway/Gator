@@ -71,7 +71,9 @@ namespace Gator{
 		void stepInit(TH1D* histo, CalibLine& line);
 		void sigmaInit(TH1D* histo, CalibLine& line);
 		
-		
+#if defined(__CLING__)
+		ClassDef(GatorCalib,0)
+#endif
 	};
 
 }//End of 'Gator' namespace

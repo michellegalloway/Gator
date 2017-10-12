@@ -33,7 +33,7 @@
 
 TString FullFileName(TGListTreeItem* item);
 TString PathName(TString filefullname);
-TString DirName(TGListTreeItem* item){return FullFileName(item);};//Must be removed at some point
+//TString DirName(TGListTreeItem* item){return FullFileName(item);};//Must be removed at some point
 void InitDirsTree(TGListTree* pContents);
 void InitFilesTree(TGListTree* pContents);
 void BrowseNewDir(TGListTreeItem *item, TGListTree *pContents, bool rootfiles);
@@ -96,8 +96,9 @@ namespace Gator{
 		void SelectAndDrawLine(const char* linename);
 		void GuiLineFit();
 		
-		
+#if defined(__CLING__)
 		ClassDef(GatorCalibGUI,0)
+#endif
 	};
 	
 }//End of 'Gator' namespace
@@ -127,7 +128,9 @@ public:
 	void OnDoubleClick(TGListTreeItem* item, Int_t btn);
 	void LoadSpectrum(); // *SIGNAL*
 	
+#if defined(__CLING__)
 	ClassDef(SpectraLoaderDialog,0)
+#endif
 };
 
 
@@ -152,7 +155,9 @@ public:
 	
 	void SaveSelectedLines(const char* outfilename); // *SIGNAL*
 	
+#if defined(__CLING__)
 	ClassDef(SaveLinesDialog,0)
+#endif
 };
 
 

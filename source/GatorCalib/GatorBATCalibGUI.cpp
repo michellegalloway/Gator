@@ -86,7 +86,7 @@ int main(int argc, char* argv[]){
 	if(guimode)
 	{
 		new Gator::GatorCalibGUI;
-		theApp.Run();
+		theApp->Run();
 		return 0;
 	}
 	

@@ -8,7 +8,7 @@
 #include "TSystemFile.h"
 #include "TString.h"
 #include "TSystem.h"
-
+#include "TF1.h"
 
 
 #include <unistd.h>
@@ -452,7 +452,7 @@ void Gator::GatorCalibGUI::MakeLineFitTab(TGTab *pTabs)
 
 void Gator::GatorCalibGUI::OpenSpectrumLoadWin()
 {
-	if(fDebug){
+	if( IsDebug() ){
 		cout << "Debug---> GatorCalibMainFrame::OpenSpectrumLoadWin(): activated." << endl;
 	}
 	

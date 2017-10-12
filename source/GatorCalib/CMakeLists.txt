@@ -6,11 +6,11 @@ project(GatorCalib)
 set(CMAKE_INSTALL_PREFIX $ENV{GATOR_SYS})
 
 include_directories(${PROJECT_SOURCE_DIR}/../include)
-include_directories($ENV{BATINSTALLDIR}/include)
+include_directories($ENV{BATSYS}/include)
 include_directories($ENV{HOME}/include)
 
 link_directories($ENV{ROOTSYS}/lib)
-link_directories($ENV{BATINSTALLDIR}/lib)
+link_directories($ENV{BATSYS}/lib)
 link_directories($ENV{HOME}/lib)
 
 
@@ -27,8 +27,7 @@ set(BATLIBS
 
 
 set(MYLIBS
-  libLikelihoodClass.so
-  libParam.so
+  libAnalysis.so
 )
 
 
@@ -39,7 +38,7 @@ set(_sources_gatorcalib
   ${PROJECT_SOURCE_DIR}/../src/GatorCalibFunc.cc
   ${PROJECT_SOURCE_DIR}/../src/GatorCalibFitters.cc
   ${PROJECT_SOURCE_DIR}/../src/GammaLineLikelihood.cc
-  ${PROJECT_SOURCE_DIR}/../src/GatorCalibGuiClass.cc
+  ${PROJECT_SOURCE_DIR}/../src/GatorCalibGUIclass.cc
   ${PROJECT_SOURCE_DIR}/../src/GatorCalibClass.cc
   )
 
@@ -56,7 +55,7 @@ set(_sources_general
 
 
 add_executable(GatorBATcalib GatorBATCalib.cpp ${_sources_gatorcalib} ${_sources_general})
-target_link_libraries(GatorBATcalibGUI ${ROOT_LIBRARIES} ${BATLIBS} ${MYLIBS} ${ROOTMORELIBS})
+target_link_libraries(GatorBATcalib ${ROOT_LIBRARIES} ${BATLIBS} ${MYLIBS} ${ROOTMORELIBS})
 
 add_executable(GatorLLcalib GatorLLcalib.cpp ${_sources_gatorcalib} ${_sources_general})
 target_link_libraries(GatorLLcalib ${ROOT_LIBRARIES} ${BATLIBS} ${MYLIBS} ${ROOTMORELIBS})
@@ -64,8 +63,8 @@ target_link_libraries(GatorLLcalib ${ROOT_LIBRARIES} ${BATLIBS} ${MYLIBS} ${ROOT
 add_executable(GatorFinalCalib GatorFinalCalib.cpp ${_sources_gatorcalib} ${_sources_general})
 target_link_libraries(GatorFinalCalib ${ROOT_LIBRARIES} ${BATLIBS} ${MYLIBS} ${ROOTMORELIBS})
 
-add_executable(GatorBATcalibGUI GatorBATcalibGUI.cpp ${_sources_gatorcalib} ${_sources_general})
-target_link_libraries(GatorBATcalib ${ROOT_LIBRARIES} ${BATLIBS} ${MYLIBS} ${ROOTMORELIBS})
+add_executable(GatorBATCalibGUI GatorBATCalibGUI.cpp ${_sources_gatorcalib} ${_sources_general})
+target_link_libraries(GatorBATCalibGUI ${ROOT_LIBRARIES} ${BATLIBS} ${MYLIBS} ${ROOTMORELIBS})
 
 
-install(TARGETS GatorLLcalib GatorBATcalib GatorFinalCalib DESTINATION bin)
+install(TARGETS GatorLLcalib GatorBATcalib GatorBATCalibGUI GatorFinalCalib DESTINATION bin)
