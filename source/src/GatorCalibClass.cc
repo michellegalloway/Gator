@@ -1,6 +1,14 @@
 #include "GatorCalibClass.hh"
 //#include "loadSPE.h"
 
+#include "TQObject.h"
+
+
+#include "TApplication.h"
+#include "TGClient.h"
+#include "TGButton.h"
+#include "TRootEmbeddedCanvas.h"
+
 #include "TCanvas.h"
 #include "TApplication.h"
 #include "TF1.h"
@@ -12,6 +20,7 @@
 #include "TFitResult.h"
 #include "TPad.h"
 #include "TRandom3.h"
+#include "Math/DistFunc.h"
 
 #include "BAT/BCAux.h"
 #include "BAT/BCLog.h"
@@ -28,11 +37,16 @@
 Gator::GatorCalib::GatorCalib()
 {
 	fHisto=NULL;
+	fDebug=false;
 }
 
 
-void Gator::GatorCalib::AddLine(CalibLine *line)
+void Gator::GatorCalib::AddLine(CalibLine *line, const string& spectrum)
 {
+	if(fSpectramap.find(spectrum) == fSpectramap.end()) return;
+	
+	if(spectrum == string("")) return;
+	
 	if(line->linename == string(""))
 	{
 		stringstream ss_tmp;
@@ -51,6 +65,19 @@ void Gator::GatorCalib::AddLine(CalibLine *line)
 		if(fLinesmap[line->linename]) delete fLinesmap[line->linename];
 	}
 	fLinesmap[line->linename] = line;
+	fLinesSpectraMap[line->linename] = spectrum;
+}
+
+
+void Gator::GatorCalib::AddLine(const string& _massnum, const string& _element, const double& _litEn, const double& _litEnErr, const string& spectrum)
+{
+	if(fSpectramap.find(spectrum) == fSpectramap.end()) return;
+	
+	if(spectrum == string("")) return;
+	
+	stringstream linename; linename.str("");
+	linename << _massnum << _element << ((int)(_litEn+0.5)) << "keV";
+	AddLine(new CalibLine(linename.str(), _massnum, _element, _litEn, _litEnErr), spectrum);
 }
 
 
@@ -70,6 +97,7 @@ void Gator::GatorCalib::LoadCalibFiles(const string& sourcename, const string& d
 	MCAhisto->SetStats(kFALSE);
 	
 	fSpectramap[sourcename] = MCAhisto;
+	fHisto = MCAhisto;
 }
 
 
@@ -103,7 +131,7 @@ TH1D* Gator::GatorCalib::GetSpectrum(const string& sourcename)
 }
 
 
-Gator::CalibLine* Gator::GatorCalib::GetCalibLine(const string& linename)
+CalibLine* Gator::GatorCalib::GetCalibLine(const string& linename)
 {
 	if( fLinesmap.find(linename)==fLinesmap.end()) return NULL;
 	
@@ -111,56 +139,53 @@ Gator::CalibLine* Gator::GatorCalib::GetCalibLine(const string& linename)
 }
 
 
-BCHistogramFitter* Gator::GatorCalib::FitLine(const string& linename)
+BCHistogramFitter* Gator::GatorCalib::FitLine(CalibLine& line)
 {
-	if( fLinesmap.find(linename)==fLinesmap.end()) return NULL;
-
-	if(!fHisto) return NULL;
-
-	CalibLine *line = fLinesmap[linename];
-
-
-	CalibLine intialValues(*line);
-
-	//Make a copy of the ROI of the original histo and put it in a new histogram
-	int firstbin = fHisto->FindBin(line->MCAlowch);
-	int lastbin = fHisto->FindBin(line->MCAupch);
-	int nbins = 1 + lastbin - firstbin;
-	double xmin = fHisto->GetBinLowEdge(firstbin);
-	double xmax = fHisto->GetBinLowEdge(lastbin+1);
-
-	stringstream ss_histoname; ss_histoname.str(""); ss_histoname << (int)(line->litEn+0.5) << "keV" ;
-	TH1D* tmphisto = new TH1D(ss_histoname.str().c_str(),";Channel;Counts",nbins,xmin,xmax);
-	tmphisto -> SetDirectory(0);
-
-	for(int bin=firstbin; bin <=lastbin; bin++){
-		double bincenter = fHisto->GetBinCenter(bin);
-		tmphisto->Fill(bincenter, fHisto->GetBinContent(bin));
+	if(IsDebug())
+	{
+		cout << "\nDebug ---> Gator::GatorCalib::FitLine(...): entering the routine." << endl;
 	}
-
-
-	//Start with the fitting process
-	TF1* ff_MCA;
-	if(!line->fit){
-		ff_MCA = new TF1("ff_MCA", &Gator::GatorCalib::peakFitFuncB, xmin, xmax, 7);
-	}else{
-		ff_MCA = line->fit;
-	}
-
+	
+	
+	TH1D* tmphisto = line.histo;
+	if(!tmphisto) return NULL;
+	
+	double xmin = tmphisto->GetBinLowEdge(1);
+	double xmax = tmphisto->GetBinLowEdge(tmphisto->GetNbinsX()+1);
+	
+	
+	TF1* ff_MCA = line.fit;
+	if(!ff_MCA) return NULL;
+	
 	ff_MCA->SetParNames("Mean","Ampl","Tail","Sigma","Beta","Step","Constant");
-	//ff_MCA->SetParNames("Mean","Ampl","Ratio","Sigma","Beta","Constant");
-
+	
+	/*
+	for(int bin=firstbin; bin <=lastbin; bin++){
+		double bincenter = MCAhisto->GetBinCenter(bin);
+		tmphisto->Fill(bincenter,MCAhisto->GetBinContent(bin));
+	}
+	*/
+	
+	CalibLine intialValues = line;//Save the initial parameters as read from the file
+	
+	
 	int nPars = ff_MCA->GetNpar();
+	
 	vector<bool> fixedpars(nPars,false);
-
-
+	
 	bool tail_flag = true;
 	bool reuse_flag = false;
-
-START:
-
+	
+	START:
+	
+	
+	if(IsDebug())
+	{
+		cout << "\nDebug ---> Gator::GatorCalib::FitLine(...): starting the fitting loop." << endl;
+	}
+	
 	string ans;
-
+	
 	if(!reuse_flag){
 		while(true){
 			cout << "\nDo you want to use the low energy tail for the fit?\n" << "[y/n] > ";
@@ -176,113 +201,144 @@ START:
 	}else{
 		tail_flag = true;
 	}
-
+	
+	
+	
+	if(IsDebug())
+	{
+		cout << "\nDebug ---> Gator::GatorCalib::FitLine(...): setting the parameters init values in the fit function." << endl;
+	}
+	
 	//This must be initialized with this order
 	if(!reuse_flag){
-		costInit(tmphisto,*line);
-		stepInit(tmphisto,*line);
-		amplInit(tmphisto,*line);
+		costInit(tmphisto,line);
+		stepInit(tmphisto,line);
+		amplInit(tmphisto,line);
 		//sigmaInit(tmphisto,line);
 	}
-
-
-
+	
+	
+	
 	//Set initial parameters
-	ff_MCA -> SetParameter(0, line->mean);
-	ff_MCA -> SetParameter(1, line->ampl);
+	ff_MCA -> SetParameter(0, line.mean);
+	ff_MCA -> SetParameter(1, line.ampl);
 	if(tail_flag){
-		ff_MCA -> SetParameter(2, line->tail);
+		ff_MCA -> SetParameter(2, line.tail);
 		fixedpars.at(2) = false;
 	}else{
 		ff_MCA -> FixParameter(2, 0.0);
 		fixedpars.at(2) = true;
 	}
-	ff_MCA -> SetParameter(3, line->sigma);
+	ff_MCA -> SetParameter(3, line.sigma);
 	if(tail_flag){
-		ff_MCA -> SetParameter(4, line->beta);
+		ff_MCA -> SetParameter(4, line.beta);
 		fixedpars.at(4) = false;
 	}else{
 		ff_MCA -> FixParameter(4, 0.0);
 		fixedpars.at(4) = true;
 	}
-	if(line->step>0.0){
-		ff_MCA -> SetParameter(5, line->step);
+	if(line.step>0.0){
+		ff_MCA -> SetParameter(5, line.step);
 	}else{
 		ff_MCA -> SetParameter(5, 1e-80);
 	}
-
-
-
+	
+	ff_MCA -> SetParameter(6, line.cost);
+	
+	
+	
+	
+	
 	if(reuse_flag){//It means that the previous fit iteration was performed without the tail
 		double val, err, min, max;
-
-		if( (line->mean_err/line->mean)<1e-3 ){
+		
+		if( (line.mean_err/line.mean)<1e-3 ){
 			//If the error is too small I allow for a variation of 0.1% around the the previous fit value
-			ff_MCA -> SetParLimits(0, 0.999*line->mean, 1.001*line->mean );
+			ff_MCA -> SetParLimits(0, 0.999*line.mean, 1.001*line.mean );
 		}else{
-			min = TMath::Max(line->mean-3*line->mean_err, xmin);
-			max = TMath::Min(line->mean+3*line->mean_err, xmax);
+			min = TMath::Max(line.mean-3*line.mean_err, xmin);
+			max = TMath::Min(line.mean+3*line.mean_err, xmax);
 			ff_MCA -> SetParLimits(0, min, max ); //Mean
 		}
-
+		
 		{//The amplitude is allowed to variate for a large range determined from the previous fit, but cannot get the 0 value!
-			min = TMath::Max(line->ampl-3*line->ampl_err, 1e-80);
-			ff_MCA -> SetParLimits(1, min, line->ampl+3*line->ampl_err ); //Gaussian amplitude
+			min = TMath::Max(line.ampl-3*line.ampl_err, 1e-80);
+			ff_MCA -> SetParLimits(1, min, line.ampl+3*line.ampl_err ); //Gaussian amplitude
 		}
-
+		
 		ff_MCA -> SetParLimits(2, 1e-80, 1.); //Tail ratio
-
+		
 		{//The width is allowed to variate for a 10% around it's previous fit value
-			ff_MCA -> SetParLimits(3, 0.9*line->sigma, 1.1*line->sigma ); //Sigma
+			ff_MCA -> SetParLimits(3, 0.9*line.sigma, 1.1*line.sigma ); //Sigma
 		}
-
-		ff_MCA -> SetParLimits(4, 1e-80, 10*line->beta ); //Beta (or Gamma when parametrization B is used)
-
-		if( !(line->step>0.0) ){
-			min = TMath::Max(line->step-3*line->step_err, 1e-80);
-			ff_MCA -> SetParLimits(5, min, line->step+3*line->step_err ); //Step amplitude	
+		
+		ff_MCA -> SetParLimits(4, 1e-80, 10*line.beta ); //Beta (or Gamma when parametrization B is used)
+		
+		if( !(line.step>0.0) ){
+			min = TMath::Max(line.step-3*line.step_err, 1e-80);
+			ff_MCA -> SetParLimits(5, min, line.step+3*line.step_err ); //Step amplitude	
 		}else{
-			ff_MCA -> SetParLimits(5, 1e-80, line->ampl/2 );//Step amplitude
+			ff_MCA -> SetParLimits(5, 1e-80, line.ampl/2 );//Step amplitude
 		}
-
-		if(line->cost_err/line->cost<1e-2){
+		
+		if(line.cost_err/line.cost<1e-2){
 			//The constant is allowed to variate for a 1% of the previous fit if the error is tto small
-			ff_MCA -> SetParLimits(6, 0.99*line->cost, 1.01*line->cost ); //Constant
+			ff_MCA -> SetParLimits(6, 0.99*line.cost, 1.01*line.cost ); //Constant
 		}else{
-			ff_MCA -> SetParLimits(6, line->cost-3*line->cost_err, line->cost+3*line->cost_err ); //Constant
+			ff_MCA -> SetParLimits(6, line.cost-3*line.cost_err, line.cost+3*line.cost_err ); //Constant
 		}
-
-
+		
+		
 	}
 	else{
-
-		ff_MCA -> SetParLimits(0, 0.99*line->mean, 1.01*line->mean ); //Gaussian center
-
-		ff_MCA -> SetParLimits(1, 1e-80, 10*line->ampl ); //Gaussian Amplitude
-
-		//ff_MCA -> SetParLimits(2, 0.0, std::numeric_limits<double>::infinity() ); //Tail strenght
-
-		if(tail_flag) ff_MCA -> SetParLimits(2, 1e-80, 1.); //Tail ratio
-
-		ff_MCA -> SetParLimits(3, 0.9*line->sigma, 1.1*line->sigma );
-
-		if(tail_flag) ff_MCA -> SetParLimits(4, 1e-80, 10*line->beta ); //Beta
-
-		if( line->step>0.0 ){
-			ff_MCA->SetParLimits(5, 1e-80, 10*line->step );//Step
-		}else{
-			ff_MCA->SetParLimits(5, 1e-80, line->ampl/2 );//Step
+		if(IsDebug())
+		{
+			cout << "\nDebug ---> Gator::GatorCalib::FitLine(...): setting the parameters limits for the fit." << endl;
 		}
-
-		ff_MCA -> SetParLimits(6, 1e-80, 10*line->cost );
+		
+		ff_MCA -> SetParLimits(0, 0.99*line.mean, 1.01*line.mean ); //Gaussian center
+		
+		ff_MCA -> SetParLimits(1, 1e-80, 10*line.ampl ); //Gaussian Amplitude
+		
+		//ff_MCA -> SetParLimits(2, 0.0, std::numeric_limits<double>::infinity() ); //Tail strenght
+		
+		if(tail_flag) ff_MCA -> SetParLimits(2, 1e-80, 1.); //Tail ratio
+		
+		ff_MCA -> SetParLimits(3, 0.9*line.sigma, 1.1*line.sigma );
+		
+		if(tail_flag) ff_MCA -> SetParLimits(4, 1e-80, 10*line.beta ); //Beta
+		
+		if( line.step>0.0 ){
+			ff_MCA->SetParLimits(5, 1e-80, 10*line.step );//Step
+		}else{
+			ff_MCA->SetParLimits(5, 1e-80, line.ampl/2 );//Step
+		}
+		
+		ff_MCA -> SetParLimits(6, 1e-80, 10*line.cost );
 	}
-
-
-
+	
+	
+	
+	//ff_MCA -> FixParameter(0, 0.0 );
+	//ff_MCA -> FixParameter(1, 0.0 ); //Gaussian ampl
+	//ff_MCA -> FixParameter(2, 0.0 ); //Tail ampl
+	//if(!tail_flag) ff_MCA -> FixParameter(2, 0.0 ); //Tail ratio
+	//ff_MCA -> FixParameter(3, 0.0 );
+	//if(!tail_flag) ff_MCA -> FixParameter(4, 0.0 ); //Beta
+	//ff_MCA -> FixParameter(5, 0.0 );
+	//ff_MCA -> FixParameter(6, 0.0 );
+	
+	
+	
 	BCLog::SetLogLevel(BCLog::debug);
-
-	BCHistogramFitter *histofitter = new BCHistogramFitter( ss_histoname.str().c_str(), tmphisto, ff_MCA );
-
+	
+	if(IsDebug())
+	{
+		cout << "\nDebug ---> Gator::GatorCalib::FitLine(...): instanciating the BCHistogramFitter object." << endl;
+	}
+	
+	BCHistogramFitter *histofitter = new BCHistogramFitter( tmphisto->GetName(), tmphisto, ff_MCA );
+	
 	// set options for MCMC
 	//histofitter -> MCMCSetFlagPreRun (false);
 	//histofitter->MCMCSetPrecision(BCEngineMCMC::kLow);
@@ -291,21 +347,20 @@ START:
 	histofitter->MCMCSetNIterationsRun(100000);
 	//histofitter->MCMCSetMinimumEfficiency(0.05);
 	//histofitter->MCMCSetMaximumEfficiency(0.2);
-
-
-
+	
+	
 	int nChains = histofitter->MCMCGetNChains();//This depends on the precision
-
+	
 	//Used to generate random numbers between 0 and 1
 	TRandom3 RdmGen(0);
 	//set initial value of parameters
 	vector<double> paramsval(nChains*nPars);
 	for(int iChain = 0; iChain<nChains; iChain++){
 		for(int iPar=0; iPar<nPars; iPar++){
-
+			
 			double val;
 			BCParameter *Par = histofitter->GetParameter(iPar);
-
+			
 			double parmin, parmax;
 			ff_MCA->GetParLimits(iPar, parmin, parmax);
 			if(fixedpars.at(iPar) == true){
@@ -320,137 +375,147 @@ START:
 				if(Par->Fixed()) Par->Unfix();
 				ff_MCA->GetParLimits(iPar, parmin, parmax);
 				val = parmin + RdmGen.Rndm()*(parmax-parmin);//Value between 0 and the parameter upper limit
-
+				
 				cout << "\nParameter <" << Par->GetName() << ">:" << endl;
 				cout << "  Min = " << Par->GetLowerLimit() << endl;
 				cout << "  Val = " << val << endl;
 				cout << "  Max = " << Par->GetUpperLimit() << endl;
 			}
-
-
-
-
+			
+			
+			
+			
 			//This is for the case where the upper limit is infinite. r=0.5 will correspond to the initialized value.
 			//double r = RdmGen.Rndm();//Value between 0 and 1
 			//double val = ff_MCA->GetParameter(iPar)*r/(1-r);
-
+			
 			paramsval.at(iChain*nPars+iPar) = val;
 		}
 	}
+	
+	//exit(-1);
+	
 	histofitter->MCMCSetInitialPositions(paramsval);
-
-
-	cout <<"\nMean init value: " << line->mean << endl;
+	
+	
+	
+	cout <<"\nMean init value: " << line.mean << endl;
 	cout <<"\tLimits: (" << histofitter->GetParameter("Mean")->GetLowerLimit() << " , " << histofitter->GetParameter("Mean")->GetUpperLimit() << ")" << endl;
-	cout <<"\nAmpl init value: " << line->ampl << endl;
+	cout <<"\nAmpl init value: " << line.ampl << endl;
 	cout <<"\tLimits: (" << histofitter->GetParameter("Ampl")->GetLowerLimit() << " , " << histofitter->GetParameter("Ampl")->GetUpperLimit() << ")" << endl;
-	cout <<"\nTail init value: " << line->tail << endl;
+	cout <<"\nTail init value: " << line.tail << endl;
 	cout <<"\tLimits: (" << histofitter->GetParameter("Tail")->GetLowerLimit() << " , " << histofitter->GetParameter("Tail")->GetUpperLimit() << ")" << endl;
-	cout <<"\nSigma init value: " << line->sigma << endl;
+	cout <<"\nSigma init value: " << line.sigma << endl;
 	cout <<"\tLimits: (" << histofitter->GetParameter("Sigma")->GetLowerLimit() << " , " << histofitter->GetParameter("Sigma")->GetUpperLimit() << ")" << endl;
-	cout <<"\nBeta init value: " << line->beta << endl;
+	cout <<"\nBeta init value: " << line.beta << endl;
 	cout <<"\tLimits: (" << histofitter->GetParameter("Beta")->GetLowerLimit() << " , " << histofitter->GetParameter("Beta")->GetUpperLimit() << ")" << endl;
-	cout <<"\nStep init value: " << line->step << endl;
+	cout <<"\nStep init value: " << line.step << endl;
 	cout <<"\tLimits: (" << histofitter->GetParameter("Step")->GetLowerLimit() << " , " << histofitter->GetParameter("Step")->GetUpperLimit() << ")" << endl;
-	cout <<"\nConstant init value: " << line->cost << endl;
+	cout <<"\nConstant init value: " << line.cost << endl;
 	cout <<"\tLimits: (" << histofitter->GetParameter("Constant")->GetLowerLimit() << " , " << histofitter->GetParameter("Constant")->GetUpperLimit() << ")" << endl;
-
-
+	
+	
+	//exit(-1);
+	
 	histofitter->SetFlagIntegration(false);
+	
 	histofitter->Fit();
+	
 	histofitter->CalculatePValueLikelihood(histofitter->GetBestFitParameters());
-
-	line->mean = histofitter->GetBestFitParameter(0);
-	line->mean_err = histofitter->GetBestFitParameterError(0);
-	line->ampl = histofitter->GetBestFitParameter(1);
-	line->ampl_err = histofitter->GetBestFitParameterError(1);
-	line->tail = histofitter->GetBestFitParameter(2);
-	line->tail_err = histofitter->GetBestFitParameterError(2);
-	//line->ratio = histofitter->GetBestFitParameter(2);
-	//line->ratio_err = histofitter->GetBestFitParameterError(2);
-	line->sigma = histofitter->GetBestFitParameter(3);
-	line->sigma_err = histofitter->GetBestFitParameterError(3);
-	line->beta = histofitter->GetBestFitParameter(4);
-	line->beta_err = histofitter->GetBestFitParameterError(4);
-	line->step = histofitter->GetBestFitParameter(5);
-	line->step_err = histofitter->GetBestFitParameterError(5);
-	line->cost = histofitter->GetBestFitParameter(6);
-	line->cost_err = histofitter->GetBestFitParameterError(6);
-	line->p_value = histofitter->GetPValue();
-	line->p_value_ndof = histofitter->GetPValueNDoF();
-
-	line->histo=tmphisto;
-	line->fit = ff_MCA;
-
-	histofitter->DrawFit("", true); // draw with a legend
-
-
-	//Open a canvas to inspect the correlation of the beta and of the tail relative amplitude
-	TPad *old_pad = (TPad*)gPad->cd();
-
-	TCanvas *c2 = new TCanvas("c2");
-	c2 -> cd();
-
-	(histofitter->GetMarginalized("Tail","Beta"))->Draw();
-
-	old_pad->cd();
-
-
+	
+	line.mean = histofitter->GetBestFitParameter(0);
+	line.mean_err = histofitter->GetBestFitParameterError(0);
+	line.ampl = histofitter->GetBestFitParameter(1);
+	line.ampl_err = histofitter->GetBestFitParameterError(1);
+	line.tail = histofitter->GetBestFitParameter(2);
+	line.tail_err = histofitter->GetBestFitParameterError(2);
+	//line.ratio = histofitter->GetBestFitParameter(2);
+	//line.ratio_err = histofitter->GetBestFitParameterError(2);
+	line.sigma = histofitter->GetBestFitParameter(3);
+	line.sigma_err = histofitter->GetBestFitParameterError(3);
+	line.beta = histofitter->GetBestFitParameter(4);
+	line.beta_err = histofitter->GetBestFitParameterError(4);
+	line.step = histofitter->GetBestFitParameter(5);
+	line.step_err = histofitter->GetBestFitParameterError(5);
+	line.cost = histofitter->GetBestFitParameter(6);
+	line.cost_err = histofitter->GetBestFitParameterError(6);
+	
+	line.p_value = histofitter->GetPValue();
+	line.p_value_ndof = histofitter->GetPValueNDoF();
+	
+	double nDof = (double)(histofitter->GetNDataPoints() - histofitter->GetNParameters());
+	line.chi2ndof = ROOT::Math::chisquared_quantile_c( line.p_value_ndof, nDof );
+	line.chi2 = line.chi2ndof*nDof;
+	
+	line.histo=tmphisto;
+	line.fit=ff_MCA;
+	
+	
+	
+	//histofitter->DrawFit();
+	tmphisto->Draw();
+	ff_MCA->Draw("same");
+	gPad->Update();
+	
+	//if(theApp) theApp->Run(kTRUE);
+	
+	
 	while(true){
-		cout << "\nDo you want to keep this fit result for " << line->massN << "-" << line->element << " line at " << line->litEn << " keV? [y/n]\n" << "> ";
+		cout << "\nDo you want to keep this fit result for " << line.massN << "-" << line.element << " line at " << line.litEn << " keV? [y/n]\n" << "> ";
 		getline(cin,ans);
 		if(ans!=string("y")  || ans!=string("Y") || ans!=string("n") || ans!=string("N")) break;
 	}
-
-
-
+	
+	
+	
 	if(ans==string("y") || ans==string("Y")){
 		return histofitter;
 	}else{
-
+		
 		while(true){
 			cout << "\nDo you want to repeat the fit?\n" << "[y/n] > ";
 			getline(cin,ans);
 			if(ans!=string("y")  || ans!=string("Y") || ans!=string("n") || ans!=string("N")) break;
 		}
-
+		
 		if(ans==string("y") || ans==string("Y")){
 			cout << "\nCurrent parameters:\n" << endl;
-
-			cout << "Mean         : " << line->mean << " +- " << line->mean_err << endl;
-			cout << "Amplitude    : " << line->ampl << " +- " << line->ampl_err << endl;
-			cout << "Tail (fixed) : " << line->tail << " +- " << line->tail_err << endl;
-			cout << "Sigma        : " << line->sigma << " +- " << line->sigma_err << endl;
-			cout << "Beta (fixed) : " << line->beta << " +- " << line->beta_err << endl;
-			cout << "Step         : " << line->step << " +- " << line->step_err << endl;
-			cout << "Constant     : " << line->cost << " +- " << line->cost_err << endl;
-
-
+			
+			cout << "Mean         : " << line.mean << " +- " << line.mean_err << endl;
+			cout << "Amplitude    : " << line.ampl << " +- " << line.ampl_err << endl;
+			cout << "Tail (fixed) : " << line.tail << " +- " << line.tail_err << endl;
+			cout << "Sigma        : " << line.sigma << " +- " << line.sigma_err << endl;
+			cout << "Beta (fixed) : " << line.beta << " +- " << line.beta_err << endl;
+			cout << "Step         : " << line.step << " +- " << line.step_err << endl;
+			cout << "Constant     : " << line.cost << " +- " << line.cost_err << endl;
+			
+			
 			if(!tail_flag){
 				while(true){
 					cout << "\nDo you want to reuse the current parameters?\n" << "[y/n] > ";
 					getline(cin,ans);
 					if(ans!=string("y")  || ans!=string("Y") || ans!=string("n") || ans!=string("N")) break;
 				}
-
+				
 				if(ans==string("y") || ans==string("Y")){
 					reuse_flag = true;
 				}else{
 					reuse_flag = false;
 				}
 			}
-
+			
 			//The parameters are kept only when the preliminary fit was performed without the tail part
-			line->tail = intialValues.tail;
-			line->beta = intialValues.beta;
-
+			line.tail = intialValues.tail;
+			line.beta = intialValues.beta;
+			
 			goto START;
 		}
-
-		delete histofitter;
+		
 		return NULL;
 	}
+	
 }
+
 
 
 bool Gator::GatorCalib::LoadLinesFromTree(const string& rootfile)
@@ -469,6 +534,7 @@ bool Gator::GatorCalib::LoadLinesFromTree(const string& rootfile)
 	
 	if(!infile->IsOpen())
 	{
+		delete infile;
 		return false;
 	}
 	
@@ -477,6 +543,7 @@ bool Gator::GatorCalib::LoadLinesFromTree(const string& rootfile)
 	
 	if(!t1)
 	{
+		delete infile;
 		return false;
 	}
 	
@@ -506,6 +573,7 @@ bool Gator::GatorCalib::LoadLinesFromTree(const string& rootfile)
 	t1 -> SetBranchAddress("p_value",&tmp_line.p_value);
 	t1 -> SetBranchAddress("p_value_ndof",&tmp_line.p_value_ndof);
 	
+	t1 -> SetBranchAddress("fit", &tmp_line.fit);
 	t1 -> SetBranchAddress("histo", &tmp_line.histo);
 	
 	
@@ -539,22 +607,37 @@ bool Gator::GatorCalib::SaveLines(const string& rootfile, bool update)
 {
 	if(access(rootfile.c_str(), W_OK) != 0)
 	{
+		cerr << "\nERROR---> Gator::GatorCalib::SaveLines(...): The file <" << rootfile << "> is not accessible!\n" << endl;
 		return false;
 	}
 	
-	if(!fLinesmap.size()) return false;
+	if(!fLinesmap.size())
+	{
+		cerr << "\nERROR---> Gator::GatorCalib::SaveLines(...): The \"fLinesmap\" container is empty!\n" << endl;
+		return false;
+	}
 	
 	
 	TFile *outfile=NULL;
 	
 	if(update)
 	{
-		outfile->TFile::Open(rootfile.c_str(),"update");
+		outfile = TFile::Open(rootfile.c_str(),"update");
 	}else{
-		outfile->TFile::Open(rootfile.c_str(),"recreate");
+		outfile = TFile::Open(rootfile.c_str(),"recreate");
 	}
 	
-	if( (!outfile) || (!outfile->IsWritable()) ) return false;
+	if(!outfile)
+	{
+		cerr << "\nERROR---> Gator::GatorCalib::SaveLines(...): The \"outfile\" pointer in null!\n" << endl;
+		return false;
+	}
+	
+	if( !outfile->IsWritable() )
+	{
+		cerr << "\nERROR---> Gator::GatorCalib::SaveLines(...): The file <" << outfile->GetName() << "> is not writable!\n" << endl;
+		return false;
+	}
 	
 	TTree *t1 = new TTree("linestree","Results of the fits for each line");
 	
@@ -593,7 +676,7 @@ bool Gator::GatorCalib::SaveLines(const string& rootfile, bool update)
 		t1->Fill();
 	}
 	
-	outfile->WriteTObject(t1);
+	outfile->WriteTObject(t1, "linestree");
 	//delete t1;
 	delete outfile;
 	return true;
@@ -895,9 +978,5 @@ void Gator::GatorCalib::sigmaInit(TH1D* histo, CalibLine& line){
 }
 /////////////////////////////////////////////////////////////////////////////////////
 
-
-#if defined(__CLING__)
-//#include "loadSPE.cc"
-#endif
 
 

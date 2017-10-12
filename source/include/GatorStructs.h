@@ -4,6 +4,7 @@
 #include <string>
 
 #include "TH1D.h"
+#include "TF1.h"
 
 using namespace std;
 
@@ -107,9 +108,9 @@ typedef struct ResultsStruct
 }ResultsStruct;
 
 
-typedef struct CalibLine
+class CalibLine
 {
-	
+public:
 	CalibLine(){
 		histo = NULL;
 		fit = NULL;
@@ -122,12 +123,24 @@ typedef struct CalibLine
 		element = _element;
 		litEn = _litEn;
 		litEn_err = _litEnErr;
+		
+		histo = NULL;
+		fit = NULL;
+	};
+	
+	~CalibLine(){
+		if(histo) delete histo;
+		if(fit) delete fit;
 	};
 	
 	void SetMassNum(const string& _massnum){massN = _massnum;};
 	void SetElement(const string& _element){element = _element;};
 	void SetLitEnergy(const double& _litEn, const double& _litEnErr=0.0){litEn = _litEn; litEn_err = _litEnErr;};
-	void SetFitRange(const double& _MCAlowch, const double& _MCAupch){MCAlowch=_MCAlowch; MCAupch=_MCAupch;};
+	void SetFitRange(const double& _MCAlowch, const double& _MCAupch)
+	{
+		MCAlowch=_MCAlowch;
+		MCAupch=_MCAupch;
+	};
 
 	void FitInit(const double& _mean, const double& _sigma, const double& _beta, const double& _ampl, const double& _tail, const double& _step=0., const double& _ratio=0., const double& _cost=0.)
 	{
@@ -177,7 +190,7 @@ typedef struct CalibLine
 	TH1D* histo;
 	TF1* fit;
 	
-}CalibLine;
+};
 
 
 
