@@ -79,7 +79,7 @@ int main(int argc, char* argv[]){
 		cout << endl << argv[0] << ":ERROR --> \"-" << c << " doesn't match with any option!!!" << endl << endl;
 		usage();
 		  return 0;
-      }
+	  }
     }
 	
 	

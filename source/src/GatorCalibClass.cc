@@ -90,7 +90,7 @@ void Gator::GatorCalib::LoadCalibFiles(const string& sourcename, const string& d
 	
 	double calibtime = 0.;
 	cout << "Calibration dir: <" << dir << ">" << endl;
-	TH1D* MCAhisto = loadSpe(dir.c_str(), calibtime);
+	TH1D* MCAhisto = Gator::GatorCalib::loadSpe(dir.c_str(), calibtime);
 	if(!MCAhisto) return;
 	MCAhisto->SetName((sourcename+string("_MCAspec")).c_str());
 	MCAhisto->SetTitle(";MCA channel; Counts");

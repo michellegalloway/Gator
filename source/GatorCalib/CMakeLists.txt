@@ -39,6 +39,8 @@ set(_sources_gatorcalib
   ${PROJECT_SOURCE_DIR}/../src/GatorCalibFunc.cc
   ${PROJECT_SOURCE_DIR}/../src/GatorCalibFitters.cc
   ${PROJECT_SOURCE_DIR}/../src/GammaLineLikelihood.cc
+  ${PROJECT_SOURCE_DIR}/../src/GatorCalibGuiClass.cc
+  ${PROJECT_SOURCE_DIR}/../src/GatorCalibClass.cc
   )
 
 set(_sources_general
@@ -52,14 +54,18 @@ set(_sources_general
 # Add the executable, and link it to the Geant4 libraries
 #
 
+
 add_executable(GatorBATcalib GatorBATCalib.cpp ${_sources_gatorcalib} ${_sources_general})
-target_link_libraries(GatorBATcalib ${ROOT_LIBRARIES} ${BATLIBS} ${MYLIBS} ${ROOTMORELIBS})
+target_link_libraries(GatorBATcalibGUI ${ROOT_LIBRARIES} ${BATLIBS} ${MYLIBS} ${ROOTMORELIBS})
 
 add_executable(GatorLLcalib GatorLLcalib.cpp ${_sources_gatorcalib} ${_sources_general})
 target_link_libraries(GatorLLcalib ${ROOT_LIBRARIES} ${BATLIBS} ${MYLIBS} ${ROOTMORELIBS})
 
 add_executable(GatorFinalCalib GatorFinalCalib.cpp ${_sources_gatorcalib} ${_sources_general})
 target_link_libraries(GatorFinalCalib ${ROOT_LIBRARIES} ${BATLIBS} ${MYLIBS} ${ROOTMORELIBS})
+
+add_executable(GatorBATcalibGUI GatorBATcalibGUI.cpp ${_sources_gatorcalib} ${_sources_general})
+target_link_libraries(GatorBATcalib ${ROOT_LIBRARIES} ${BATLIBS} ${MYLIBS} ${ROOTMORELIBS})
 
 
 install(TARGETS GatorLLcalib GatorBATcalib GatorFinalCalib DESTINATION bin)
