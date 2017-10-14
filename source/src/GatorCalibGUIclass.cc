@@ -17,28 +17,29 @@
 using namespace std;
 
 
-const TGPicture *gIcon = gClient->GetPicture("rootdb_t.xpm");
+const TGPicture *gIcon;
 
-Gator::GatorCalibGUI::GatorCalibGUI(): TGMainFrame(gClient->GetRoot(), 800, 600)
+Gator::GatorCalibGUI::GatorCalibGUI(): TGMainFrame(TGClient::Instance()->GetRoot(), 800, 600)
 {
+	gIcon = gClient->GetPicture("rootdb_t.xpm");
+	
+	fSpectSel = NULL;
+	fSpectraList = NULL;
+	
+	fLinesSel = NULL;
+	fFitLineSelBox = NULL;
+	
+	
 	//Create a Tab widget
 	TGCompositeFrame *pTabsTopFrame = new TGCompositeFrame(this, 800, 600);
 	TGTextButton *pExitButton = new TGTextButton(this, "Exit");
 	
-	AddFrame(pTabsTopFrame, new TGLayoutHints(kLHintsTop, 5, 1, 5, 1));
-	AddFrame(pExitButton, new TGLayoutHints(kLHintsBottom | kLHintsCenterX, 5, 1, 5, 1));
-	
-	
 	TGTab *pTabs = new TGTab(pTabsTopFrame, 800, 600);
+	
+	
+	AddFrame(pTabsTopFrame, new TGLayoutHints(kLHintsTop | kLHintsExpandX | kLHintsExpandY, 5, 1, 5, 1));
+	AddFrame(pExitButton, new TGLayoutHints(kLHintsBottom, 5, 1, 5, 1));
 	pTabsTopFrame->AddFrame(pTabs, new TGLayoutHints(kLHintsBottom | kLHintsExpandX | kLHintsExpandY, 5, 5, 2, 1) );
-	
-	
-	pExitButton->Connect("Clicked()", "GatorCalibGUI", this, "CloseWindow()");
-	
-#if !defined(__CLING__)
-	pExitButton->Connect("Clicked()", "TApplication", gApplication, "Terminate()");
-#endif
-	
 	
 	
 	MakeSpectraManagerTab(pTabs);
@@ -48,6 +49,12 @@ Gator::GatorCalibGUI::GatorCalibGUI(): TGMainFrame(gClient->GetRoot(), 800, 600)
 	
 	//TGCompositeFrame *fCorrTab = pTabs->AddTab("Correlations"); //This panel is only to plot between two parameters
 	
+	
+	pExitButton->Connect("Clicked()", "GatorCalibGUI", this, "CloseWindow()");
+	
+#if !defined(__CLING__)
+	pExitButton->Connect("Clicked()", "TApplication", gApplication, "Terminate()");
+#endif
 	
 	
 	// Set a name to the main frame
@@ -86,7 +93,6 @@ void Gator::GatorCalibGUI::MakeSpectraManagerTab(TGTab *pTabs)
 	fSpectSel->Resize(100, 20);
 	FillSpectraList();
 	
-	
 	// Create canvas widget where the spectra are shown
 	fSpectrumCanvas = new TRootEmbeddedCanvas("Source Spectrum", fSpectTab, 900, 600);
 	
@@ -94,10 +100,9 @@ void Gator::GatorCalibGUI::MakeSpectraManagerTab(TGTab *pTabs)
 	//"AddFrame" section
 	fSpectTab->AddFrame(fSpecButtFrame, new TGLayoutHints(kLHintsExpandX | kLHintsTop, 5, 5, 2, 5) );
 	fSpecButtFrame->AddFrame(fLoadSpectButt, new TGLayoutHints(kLHintsCenterY, 1, 1, 1, 1) );
-	fSpecButtFrame->AddFrame(fSpectSel, new TGLayoutHints(kLHintsCenterY | kLHintsLeft,1,5,5,5));
 	fSpecButtFrame->AddFrame(pLabel1, new TGLayoutHints(kLHintsCenterY | kLHintsLeft,15,5,5,5));
+	fSpecButtFrame->AddFrame(fSpectSel, new TGLayoutHints(kLHintsCenterY | kLHintsLeft,1,5,5,5));
 	fSpectTab->AddFrame(fSpectrumCanvas, new TGLayoutHints(kLHintsExpandX | kLHintsExpandY, 5,1,5,10) );
-	
 	
 	//"Connect" section
 	fLoadSpectButt->Connect("Clicked()","GatorCalibGUI",this,"OpenSpectrumLoadWin()");
@@ -172,7 +177,6 @@ void Gator::GatorCalibGUI::MakeLinesManagerTab(TGTab *pTabs)
 	fLinesSel->SetWidth(150);
 	fLinesSel->SetHeight(5*fElementInput->GetHeight());
 	TGTextButton *pSaveLinesButt = new TGTextButton(pSubFrame3, "Save lines...");
-	
 	
 	
 	//"AddFrame" section
@@ -462,11 +466,14 @@ void Gator::GatorCalibGUI::OpenSpectrumLoadWin()
 
 void Gator::GatorCalibGUI::FillSpectraList()
 {
+	if(fSpectSel) fSpectSel->RemoveAll();
+	if(fSpectraList) fSpectraList->RemoveAll();
+	
 	map<string, TH1D*>::iterator It;
 	for(It=fSpectramap.begin(); It!=fSpectramap.end(); It++)
 	{
-		fSpectSel->AddEntry((It->first).c_str(), -1);
-		fSpectraList->AddEntry((It->first).c_str(), -1);
+		if(fSpectSel) fSpectSel->AddEntry((It->first).c_str(), -1);
+		if(fSpectraList) fSpectraList->AddEntry((It->first).c_str(), -1);
 	}
 }
 
@@ -491,7 +498,7 @@ void Gator::GatorCalibGUI::AddLineFromGui()
 {
 	//Make line name
 	stringstream lName; lName.str("");
-	lName << fIsotMassInput->GetText() << fElementInput->GetText() << ((int)(fLineEnergyInput->GetNumber()+0.5)) << "keV";
+	lName << fIsotMassInput->GetText() << fElementInput->GetText() << "_" << ((int)(fLineEnergyInput->GetNumber()+0.5)) << "keV";
 	
 	if(fLinesmap.find(lName.str())!=fLinesmap.end())
 	{
@@ -544,15 +551,15 @@ void Gator::GatorCalibGUI::AddLineFromGui()
 void Gator::GatorCalibGUI::FillLinesLists()
 {
 	//Clear the lists and remake it
-	fFitLineSelBox->RemoveAll();
-	fLinesSel->RemoveAll();
+	if(fLinesSel) fLinesSel->RemoveAll();
+	if(fFitLineSelBox) fFitLineSelBox->RemoveAll();
 	
 	map<string, CalibLine*>::iterator It;
 	int id=0;
 	for(It=fLinesmap.begin(); It!=fLinesmap.end(); It++)
 	{
-		fLinesSel->AddEntry((It->first).c_str(), id);
-		fFitLineSelBox->AddEntry((It->first).c_str(), id);
+		if(fLinesSel) fLinesSel->AddEntry((It->first).c_str(), id);
+		if(fFitLineSelBox) fFitLineSelBox->AddEntry((It->first).c_str(), id);
 		id++;
 	}
 	Layout();
@@ -794,9 +801,11 @@ void Gator::GatorCalibGUI::SaveSelectedLines(const char* outfilename)
 
 using namespace Gator;
 
-SpectraLoaderDialog::SpectraLoaderDialog(GatorCalibGUI *_GatorCalib):
-	TGTransientFrame(gClient->GetRoot(), _GatorCalib, 300, 200, kVerticalFrame), fGatorCalib(_GatorCalib)
+SpectraLoaderDialog::SpectraLoaderDialog(Gator::GatorCalibGUI *_GatorCalib):
+	TGTransientFrame(gClient->GetRoot(), _GatorCalib, 300, 200, kVerticalFrame)
 {
+	
+	fGatorCalib = _GatorCalib;
 	
 	SetCleanup(kDeepCleanup);
 	Connect("CloseWindow()", "SpectraLoaderDialog", this, "CloseWindow()");
@@ -873,8 +882,7 @@ SpectraLoaderDialog::SpectraLoaderDialog(GatorCalibGUI *_GatorCalib):
 	
 	pOkButt->Connect("Clicked()", "SpectraLoaderDialog", this, "LoadSpectrum()");
 	pOkButt->Connect("Clicked()", "SpectraLoaderDialog", this, "CloseWindow()");
-	Connect("LoadSpectrum()", "Gator::GatorCalibGUI", fGatorCalib, "FillSpectraList()");
-	//pOkButt->Connect("Clicked()", "Gator::GatorCalibGUI", fGatorCalib, "FillSpectraList()");
+	//Connect("LoadSpectrum()", "Gator::GatorCalibGUI", fGatorCalib, "FillSpectraList()");
 	pCancelButt->Connect("Clicked()", "SpectraLoaderDialog", this, "CloseWindow()");
 	
 	
@@ -937,6 +945,7 @@ void SpectraLoaderDialog::LoadSpectrum()
 	string dirname = (fSelectedDirText->GetDisplayText()).Data();
 	
 	fGatorCalib->LoadCalibFiles( string((fSpectName->GetDisplayText()).Data()), dirname+string("/") );
+	fGatorCalib->FillSpectraList();
 	
 	Emit("LoadSpectrum()");
 }
@@ -948,7 +957,7 @@ void SpectraLoaderDialog::LoadSpectrum()
 //  Definitions of the SaveLinesDialog class  //
 //--------------------------------------------//
 
-SaveLinesDialog::SaveLinesDialog(GatorCalibGUI *_GatorCalib):TGTransientFrame(gClient->GetRoot(), _GatorCalib, 300, 200, kVerticalFrame), fGatorCalib(_GatorCalib)
+SaveLinesDialog::SaveLinesDialog(Gator::GatorCalibGUI *_GatorCalib):TGTransientFrame(gClient->GetRoot(), _GatorCalib, 300, 200, kVerticalFrame), fGatorCalib(_GatorCalib)
 {
 	SetCleanup(kDeepCleanup);
 	Connect("CloseWindow()", "SaveLinesDialog", this, "CloseWindow()");
@@ -1312,7 +1321,8 @@ void BrowseNewDir(TGListTreeItem *item, TGListTree *pContents, bool rootfiles)
 			}
 			else if( rootfiles && fname.EndsWith(".root") )
 			{
-				pContents->AddItem(item, fname, gIcon, gIcon);
+				//pContents->AddItem(item, fname, gIcon, gIcon);
+				pContents->AddItem(item, fname);
 			}
 		}
 		delete files;

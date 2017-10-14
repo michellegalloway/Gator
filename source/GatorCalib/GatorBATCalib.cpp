@@ -68,13 +68,16 @@ int main(int argc, char* argv[]){
 			usage();
 			return 0;
 			break;
-        
-        default:
+			
+			default:
+		
 		cout << endl << argv[0] << ":ERROR --> \"-" << c << " doesn't match with any option!!!" << endl << endl;
-          usage();
-		  return 0;
-      }
-    }
+		
+		usage();
+		
+		return 0;
+		}
+	}
 	
 	if(!(calibset_flag && configfile_flag)){
 		cout << endl << argv[0] << ":ERROR --> One or more mandatory arguments are missing!!!" << endl << endl;

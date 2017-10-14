@@ -1,9 +1,9 @@
-#include <limits>
-#include <vector>
-#include <string>
-#include <fstream>
-#include <sstream>
-#include <cstdlib>
+#include "GammaLineLikelihood.hh"
+#include "GatorStructs.h"
+#include "GatorCalibFitters.h"
+#include "screenfncs.h"
+#include "misc.h"
+#include "BCHistoFitterFast.hh"
 
 #include <BAT/BCAux.h>
 #include <BAT/BCLog.h>
@@ -23,11 +23,14 @@
 
 #include "Math/Functor.h"
 
-#include "GammaLineLikelihood.hh"
-#include "GatorStructs.h"
-#include "GatorCalibFitters.h"
-#include "screenfncs.h"
-#include "misc.h"
+#include <limits>
+#include <vector>
+#include <string>
+#include <fstream>
+#include <sstream>
+#include <cstdlib>
+
+
 
 using namespace std;
 
@@ -279,11 +282,13 @@ bool doFitBAT(TH1D* MCAhisto, CalibLine& line)
 	
 	BCLog::SetLogLevel(BCLog::debug);
 	
-	BCHistogramFitter *histofitter = new BCHistogramFitter( ss_histoname.str().c_str(), tmphisto, ff_MCA );
+	//BCHistogramFitter *histofitter = new BCHistogramFitter( ss_histoname.str().c_str(), tmphisto, ff_MCA );
+	Gator::BcHistoFitterFast *histofitter = new Gator::BcHistoFitterFast( tmphisto, ff_MCA );
 	
 	// set options for MCMC
 	//histofitter -> MCMCSetFlagPreRun (false);
-	//histofitter->MCMCSetPrecision(BCEngineMCMC::kLow);
+	histofitter->MCMCSetPrecision(BCEngineMCMC::kHigh);
+	//histofitter->SetFlagIntegration(true);
 	//histofitter->SetMarginalizationMethod(BCIntegrate::kMargMetropolis);
 	//histofitter->MCMCSetNIterationsPreRunMin(100000);
 	histofitter->MCMCSetNIterationsRun(100000);

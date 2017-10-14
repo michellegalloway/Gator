@@ -95,9 +95,9 @@ namespace Gator{
 		void SaveSelectedLines(const char* outfilename);
 		void SelectAndDrawLine(const char* linename);
 		void GuiLineFit();
-		
+
 #if defined(__CLING__)
-		ClassDef(GatorCalibGUI,0)
+		//ClassDef(GatorCalibGUI,0)
 #endif
 	};
 	
@@ -110,17 +110,18 @@ using namespace Gator;
 class SpectraLoaderDialog: public TGTransientFrame
 {
 private:
-	GatorCalibGUI *fGatorCalib;
+	Gator::GatorCalibGUI *fGatorCalib;
 	
 	TGTextEntry *fSpectName;
 	TGListTree *fContents;
 	TGTextEntry *fSelectedDirText;
 	
 	//TString DirName(TGListTreeItem* item);
-	
+	SpectraLoaderDialog(){;};
 	
 public:
-	SpectraLoaderDialog(GatorCalibGUI *_GatorCalib);
+	SpectraLoaderDialog(Gator::GatorCalibGUI *_GatorCalib);
+	
 	virtual ~SpectraLoaderDialog(){Cleanup();};
 
 	//slots
@@ -129,7 +130,7 @@ public:
 	void LoadSpectrum(); // *SIGNAL*
 	
 #if defined(__CLING__)
-	ClassDef(SpectraLoaderDialog,0)
+	//ClassDef(SpectraLoaderDialog,0)
 #endif
 };
 
@@ -138,13 +139,15 @@ public:
 class SaveLinesDialog: public TGTransientFrame
 {
 private:
-	GatorCalibGUI *fGatorCalib;
+	Gator::GatorCalibGUI *fGatorCalib;
 	
 	TGListTree *fContents;
 	TGTextEntry *fSelectedOutFile;
 	
+	SaveLinesDialog(){;};
+	
 public:
-	SaveLinesDialog(GatorCalibGUI *_GatorCalib);
+	SaveLinesDialog(Gator::GatorCalibGUI *_GatorCalib);
 	virtual ~SaveLinesDialog(){Cleanup();};
 	
 	
@@ -156,28 +159,7 @@ public:
 	void SaveSelectedLines(const char* outfilename); // *SIGNAL*
 	
 #if defined(__CLING__)
-	ClassDef(SaveLinesDialog,0)
+	//ClassDef(SaveLinesDialog,0)
 #endif
 };
 
-
-/*
-class SaveLinesDialog: public TGTransientFrame
-{
-private:
-	GatorCalibGUI *fGatorCalib;
-	
-	TGListTree *fContents;
-	TGTextEntry *fSelectedOutFile;
-	
-public:
-	SaveLinesDialog(GatorCalibGUI *_GatorCalib); // *SIGNAL*
-	virtual ~SaveLinesDialog(){Cleanup();};
-	
-	//Slots
-	void OnSingleClick(TGListTreeItem* item, Int_t btn);
-	void OnDoubleClick(TGListTreeItem* item, Int_t btn);
-	
-	ClassDef(SaveLinesDialog,0)
-};
-*/

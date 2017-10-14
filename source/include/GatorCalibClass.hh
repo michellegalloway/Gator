@@ -44,10 +44,11 @@ namespace Gator{
 		void LoadCalibFiles(const string& sourcename, const string& dir);
 		TH1D* SelectSpectrum(const string& sourcename);
 		TH1D* DrawSpectrum(const string& opt=string(""));
-		void AddLine(CalibLine *line, const string& spectrum);
-		void AddLine(const string& _massnum, const string& _element, const double& _litEn, const double& _litEnErr, const string& spectrum);
-		void AddLine(const string& _massnum, const string& _element, const double& _litEn, const string& spectrum){
-			AddLine(_massnum, _element, _litEn, 0.0, spectrum);
+		CalibLine* AddLine(CalibLine *line, const string& spectrum);
+		CalibLine* AddLine(const string& _massnum, const string& _element, const double& _litEn, const double& _litEnErr, const string& spectrum);
+		CalibLine* AddLine(const string& _massnum, const string& _element, const double& _litEn, const string& spectrum)
+		{
+			return AddLine(_massnum, _element, _litEn, 0.0, spectrum);
 		};
 		
 		bool LoadLinesFromTree(const string& rootfile);
@@ -71,9 +72,6 @@ namespace Gator{
 		void stepInit(TH1D* histo, CalibLine& line);
 		void sigmaInit(TH1D* histo, CalibLine& line);
 		
-#if defined(__CLING__)
-		ClassDef(GatorCalib,0)
-#endif
 	};
 
 }//End of 'Gator' namespace

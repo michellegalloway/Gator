@@ -128,6 +128,17 @@ public:
 		fit = NULL;
 	};
 	
+	CalibLine(const string& _massnum, const string& _element, const double& _litEn=0.0, const double& _litEnErr=0.0)
+	{
+		massN = _massnum;
+		element = _element;
+		litEn = _litEn;
+		litEn_err = _litEnErr;
+		
+		histo = NULL;
+		fit = NULL;
+	};
+	
 	~CalibLine(){
 		if(histo) delete histo;
 		if(fit) delete fit;

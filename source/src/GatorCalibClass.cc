@@ -1,13 +1,6 @@
 #include "GatorCalibClass.hh"
-//#include "loadSPE.h"
+#include "BCHistoFitterFast.hh"
 
-#include "TQObject.h"
-
-
-#include "TApplication.h"
-#include "TGClient.h"
-#include "TGButton.h"
-#include "TRootEmbeddedCanvas.h"
 
 #include "TCanvas.h"
 #include "TApplication.h"
@@ -41,43 +34,55 @@ Gator::GatorCalib::GatorCalib()
 }
 
 
-void Gator::GatorCalib::AddLine(CalibLine *line, const string& spectrum)
+CalibLine* Gator::GatorCalib::AddLine(CalibLine *line, const string& spectrumname)
 {
-	if(fSpectramap.find(spectrum) == fSpectramap.end()) return;
+	if(fSpectramap.find(spectrumname) == fSpectramap.end()) return NULL;
 	
-	if(spectrum == string("")) return;
+	if(spectrumname == string("")) return NULL;
 	
-	if(line->linename == string(""))
+	TH1D* pSpect = fSpectramap[spectrumname];
+	
+	int firstbin = pSpect->FindBin( line->MCAlowch );
+	int lastbin = pSpect->FindBin( line->MCAupch );
+	int nbins = 1 + lastbin - firstbin;
+	double xmin = pSpect->GetBinLowEdge(firstbin);
+	double xmax = pSpect->GetBinLowEdge(lastbin+1);
+	
+	stringstream ss_tmp;
+	ss_tmp.str(""); ss_tmp << line->massN << line->element << "_" << (int)(line->litEn+0.5) << "keV";
+	
+	line->linename = ss_tmp.str();
+	
+	stringstream ss_histoname; ss_histoname.str(""); ss_histoname << ((int)(line->litEn+0.5)) << "keV" ;
+	line->histo = new TH1D(ss_histoname.str().c_str(),";Channel;Counts", nbins, xmin, xmax);
+	line->histo->SetDirectory(0);
+	
+	for(int iBin=firstbin; iBin<=lastbin; iBin++)
 	{
-		stringstream ss_tmp;
-		
-		bool found_flag = false;
-		unsigned counter=0;
-		do{
-			ss_tmp.str(""); ss_tmp << "Line" << fLinesmap.size()+counter; counter++;
-		}while( fLinesmap.find(ss_tmp.str()) != fLinesmap.end() );
-		
-		fLinesmap[ss_tmp.str()] = line;
-		return;
+		line->histo->Fill( pSpect->GetBinCenter(iBin), pSpect->GetBinContent(iBin) );
 	}
+	
+	line->fit = new TF1("ff_MCA", &Gator::GatorCalib::peakFitFuncB, xmin, xmax, 7);
 	
 	if(fLinesmap.find(line->linename) != fLinesmap.end()){
 		if(fLinesmap[line->linename]) delete fLinesmap[line->linename];
 	}
 	fLinesmap[line->linename] = line;
-	fLinesSpectraMap[line->linename] = spectrum;
+	fLinesSpectraMap[line->linename] = spectrumname;
+	
+	return fLinesmap[line->linename];
 }
 
 
-void Gator::GatorCalib::AddLine(const string& _massnum, const string& _element, const double& _litEn, const double& _litEnErr, const string& spectrum)
+CalibLine* Gator::GatorCalib::AddLine(const string& _massnum, const string& _element, const double& _litEn, const double& _litEnErr, const string& spectrum)
 {
-	if(fSpectramap.find(spectrum) == fSpectramap.end()) return;
+	if(fSpectramap.find(spectrum) == fSpectramap.end()) return NULL;
 	
-	if(spectrum == string("")) return;
+	if(spectrum == string("")) return NULL;
 	
 	stringstream linename; linename.str("");
-	linename << _massnum << _element << ((int)(_litEn+0.5)) << "keV";
-	AddLine(new CalibLine(linename.str(), _massnum, _element, _litEn, _litEnErr), spectrum);
+	linename << _massnum << _element << "_" << ((int)(_litEn+0.5)) << "keV";
+	return AddLine(new CalibLine(linename.str(), _massnum, _element, _litEn, _litEnErr), spectrum);
 }
 
 
@@ -337,14 +342,15 @@ BCHistogramFitter* Gator::GatorCalib::FitLine(CalibLine& line)
 		cout << "\nDebug ---> Gator::GatorCalib::FitLine(...): instanciating the BCHistogramFitter object." << endl;
 	}
 	
-	BCHistogramFitter *histofitter = new BCHistogramFitter( tmphisto->GetName(), tmphisto, ff_MCA );
+	Gator::BcHistoFitterFast *histofitter = new Gator::BcHistoFitterFast( tmphisto, ff_MCA );
 	
 	// set options for MCMC
 	//histofitter -> MCMCSetFlagPreRun (false);
-	//histofitter->MCMCSetPrecision(BCEngineMCMC::kLow);
+	histofitter->MCMCSetPrecision(BCEngineMCMC::kVeryHigh);
+	//histofitter->SetFlagIntegration(true);
 	//histofitter->SetMarginalizationMethod(BCIntegrate::kMargMetropolis);
 	//histofitter->MCMCSetNIterationsPreRunMin(100000);
-	histofitter->MCMCSetNIterationsRun(100000);
+	//histofitter->MCMCSetNIterationsRun(100000);
 	//histofitter->MCMCSetMinimumEfficiency(0.05);
 	//histofitter->MCMCSetMaximumEfficiency(0.2);
 	

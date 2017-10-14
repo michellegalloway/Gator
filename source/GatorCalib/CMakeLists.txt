@@ -38,9 +38,14 @@ set(_sources_gatorcalib
   ${PROJECT_SOURCE_DIR}/../src/GatorCalibFunc.cc
   ${PROJECT_SOURCE_DIR}/../src/GatorCalibFitters.cc
   ${PROJECT_SOURCE_DIR}/../src/GammaLineLikelihood.cc
-  ${PROJECT_SOURCE_DIR}/../src/GatorCalibGUIclass.cc
   ${PROJECT_SOURCE_DIR}/../src/GatorCalibClass.cc
+  ${PROJECT_SOURCE_DIR}/../src/BCHistoFitterFast.cc
   )
+
+set(_sources_gui
+  ${PROJECT_SOURCE_DIR}/../src/GatorCalibGUIclass.cc
+  #${PROJECT_SOURCE_DIR}/../src/GUI_dict.cxx
+)
 
 set(_sources_general
   ${PROJECT_SOURCE_DIR}/../src/loadSPE.cc
@@ -63,8 +68,8 @@ target_link_libraries(GatorLLcalib ${ROOT_LIBRARIES} ${BATLIBS} ${MYLIBS} ${ROOT
 add_executable(GatorFinalCalib GatorFinalCalib.cpp ${_sources_gatorcalib} ${_sources_general})
 target_link_libraries(GatorFinalCalib ${ROOT_LIBRARIES} ${BATLIBS} ${MYLIBS} ${ROOTMORELIBS})
 
-add_executable(GatorBATCalibGUI GatorBATCalibGUI.cpp ${_sources_gatorcalib} ${_sources_general})
-target_link_libraries(GatorBATCalibGUI ${ROOT_LIBRARIES} ${BATLIBS} ${MYLIBS} ${ROOTMORELIBS})
+#add_executable(GatorBATCalibGUI GatorBATCalibGUI.cpp ${_sources_gatorcalib} ${_sources_gui} ${_sources_general})
+#target_link_libraries(GatorBATCalibGUI ${ROOT_LIBRARIES} ${BATLIBS} ${MYLIBS} ${ROOTMORELIBS})
 
 
-install(TARGETS GatorLLcalib GatorBATcalib GatorBATCalibGUI GatorFinalCalib DESTINATION bin)
+install(TARGETS GatorLLcalib GatorBATcalib GatorFinalCalib DESTINATION bin)
