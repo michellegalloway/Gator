@@ -1,15 +1,21 @@
-#General Stuff (Paths)
+#----------------------------------------------------------------------------
+# Setup the project
 cmake_minimum_required(VERSION 2.8.8 FATAL_ERROR)
+project(GatorUtils)
 
 
-option (BUILD_LIBS "Build shared libs to be integrated in the ROOT system" OFF)
+option(BUILD_LIBS "Build shared libs to be integrated in the ROOT system" ON)
+option(BUILD_GUI "Build the ROOT based GUIs" ON)
 option(BUILD_SAMPLEANALYSIS "Build the sampleanalysis program" ON)
 option(BUILD_GATORCALIB "Build the Gator calibration program with BAT toolkit" ON)
 
 
-
+set(ROOT_CONFIG_DEBUG OFF)
 # Tell CMake where to find the ROOT installation.
 list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS} )
+
+
+set(CMAKE_INSTALL_PREFIX $ENV{HOME})
 
 #----------------------------------------------------------------------------
 #Set the necessary path variables and find the ROOT package
@@ -22,6 +28,91 @@ include_directories($ENV{ROOTSYS}/include)
 
 link_directories(${ROOT_LIBRARY_DIR})
 link_directories(${HOME}/lib)
+
+
+if(ROOT_CONFIG_DEBUG)
+	message(STATUS "ROOT_LIBRARY_DIR: " ${ROOT_LIBRARY_DIR})
+	
+	foreach(lib ${ROOT_LIBRARIES})
+		message(STATUS "Using root library: " ${lib})
+	endforeach(lib)
+	
+endif(ROOT_CONFIG_DEBUG)
+
+#SET(CMAKE_CXX_FLAGS ${ROOT_CXX_FLAGS})
+
+if(BUILD_LIBS)
+	include_directories(${PROJECT_SOURCE_DIR}/include)
+	include_directories($ENV{BATSYS}/include)
+	include_directories($ENV{HOME}/include)
+	
+
+	link_directories($ENV{ROOTSYS}/lib)
+	link_directories($ENV{BATSYS}/lib)
+	link_directories($ENV{HOME}/lib)
+	
+	set(BATLIBS
+	  libBAT.so
+	  libBATmodels.so
+	  libBATmtf.so
+	  libBATmvc.so
+	)
+	
+	set(MYLIBS
+	  libAnalysis.so
+	)
+	
+	file(GLOB _libsHeaderlist ${CMAKE_CURRENT_SOURCE_DIR}/include/*.hh)
+	file(GLOB _libsSources ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cc)
+	
+	if(BUILD_GUI)
+		file(GLOB _libsGuiHeaderlist ${CMAKE_CURRENT_SOURCE_DIR}/include/GUI/*.hh)
+		file(GLOB _libsGuiSources ${CMAKE_CURRENT_SOURCE_DIR}/src/GUI/*.cc)
+	endif(BUILD_GUI)
+	
+	
+	ROOT_GENERATE_DICTIONARY(GatorDict ${_libsHeaderlist} LINKDEF ${CMAKE_CURRENT_SOURCE_DIR}/include/LinkDef.h)
+	ROOT_GENERATE_ROOTMAP(Gator LINKDEF ${CMAKE_CURRENT_SOURCE_DIR}/include/LinkDef.h DEPENDENCIES ${ROOT_LIBRARIES})
+	
+	add_library(Gator SHARED ${_libsSources} GatorDict.cxx)
+	set_target_properties(Gator PROPERTIES SUFFIX .so)
+	set_target_properties(Gator PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
+	target_link_libraries(Gator ${ROOT_LIBRARIES} ${BATLIBS} ${MYLIBS})
+	
+	if(BUILD_GUI)
+		ROOT_GENERATE_DICTIONARY(GatorGUIDict ${_libsHeaderlist} ${_libsGuiHeaderlist} LINKDEF ${CMAKE_CURRENT_SOURCE_DIR}/include/LinkDef.h)
+		ROOT_GENERATE_ROOTMAP(GatorGUI LINKDEF ${CMAKE_CURRENT_SOURCE_DIR}/include/LinkDef.h DEPENDENCIES ${ROOT_LIBRARIES} libGator)
+	
+		add_library(GatorGUI SHARED ${_libsSources} GatorGUIDict.cxx)
+		set_target_properties(GatorGUI PROPERTIES SUFFIX .so)
+		set_target_properties(GatorGUI PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
+		target_link_libraries(GatorGUI libGator.so ${ROOT_LIBRARIES} ${BATLIBS} ${MYLIBS})
+		
+		#Here the installation rules both for the normal and the GUI libraries are added
+		install(TARGETS Gator GatorGUI DESTINATION lib)
+		
+		#Make the rules to install all the include directory tree
+		install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/ DESTINATION $ENV{GATOR_SYS}/include PATTERN "LinkDef.h" EXCLUDE)
+		
+		install(FILES ${PROJECT_BINARY_DIR}/libGatorGUIDict.rootmap DESTINATION lib)
+		install(FILES ${PROJECT_BINARY_DIR}/libGatorGUIDict_rdict.pcm DESTINATION lib)
+
+	else(BUILD_GUI)
+		#Here the installation rules only for the normal libraries are added
+		install(TARGETS Gator DESTINATION lib)
+		
+		#Make the rules to install all the include directory tree
+		install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/ DESTINATION $ENV{GATOR_SYS}/include PATTERN "LinkDef.h" PATTERN "GUI" EXCLUDE)
+		
+		install(FILES ${PROJECT_BINARY_DIR}/libGatorDict.rootmap DESTINATION lib)
+		install(FILES ${PROJECT_BINARY_DIR}/libGatorDict_rdict.pcm DESTINATION lib)
+		
+	endif(BUILD_GUI)
+	
+	#install(DIRECTORY ${PROJECT_BINARY_DIR}/ DESTINATION lib FILES_MATCHING PATTERN ".rootmap" PATTERN ".pcm" )	
+endif(BUILD_LIBS)
+
+
 
 #Subdirectories
 if(BUILD_SAMPLEANALYSIS)

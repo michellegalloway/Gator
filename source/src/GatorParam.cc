@@ -53,7 +53,7 @@ GatorParam::GatorParam(string name, double lowEdge, double upEdge, bool trackval
 
 void GatorParam::SetLimits(double lowerlimit, double upperlimit){
 	if(lowerlimit>upperlimit){
-		cerr << '\nGatorParam::SetLimits(...) --> ERROR: Tryng to set lower edge higher than upper edge for parameter "' << fName << '"' << endl << endl;
+		cerr << "\nGatorParam::SetLimits(...) --> ERROR: Tryng to set lower edge higher than upper edge for parameter \"" << fName << "\"" << endl << endl;
 		return;
 	}
 	

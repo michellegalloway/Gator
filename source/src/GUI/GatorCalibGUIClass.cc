@@ -1,4 +1,4 @@
-#include "GatorCalibGUIclass.hh"
+#include "GUI/GatorCalibGUIClass.hh"
 
 #include "TQObject.h"
 #include "TApplication.h"

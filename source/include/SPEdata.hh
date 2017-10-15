@@ -36,7 +36,7 @@ public:
 	void SetStartUT(ULong_t startunixtime){m_startunixtime=startunixtime;};
 //	void SetSize(uint nbins){m_nbins=nbins;};
 	void SetAcqTime(double acqtime){m_acqtime=acqtime;};
-	void SetDescription(string descr){ms_descr=descr;};
+	void SetDescription(string descr){ms_description=descr;};
 	
 private:
 
@@ -46,9 +46,9 @@ private:
 	ULong_t m_startunixtime;
 	double m_acqtime;
 	vector<double>* mv_pDataBins; //Here is the data! Could create keep data in an TH1* but with this choice the class is much lighter (can create vector out of it.
-	string ms_descr;
+	string ms_description;
 	uint m_nbins;
-	
+
 	bool flag_datafromfile; //Set on true only when the constructor that reads from the file is used.
 	bool flag_dataloaded;
 	
