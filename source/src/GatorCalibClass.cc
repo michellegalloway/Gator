@@ -1,3 +1,4 @@
+#include "GatorGlobals.hh"
 #include "GatorCalibClass.hh"
 #include "BCHistoFitterFast.hh"
 

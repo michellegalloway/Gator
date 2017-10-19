@@ -1,3 +1,10 @@
+#include "GatorGlobals.hh"
+#include "GatorStructs.h"
+#include "GatorCalibFunc.h"
+//#include "GatorCalibFitters.h"
+//#include "GatorCalibScr.h"
+//#include "GatorDataLoader.hh"
+
 #include <string>
 #include <cstdlib>
 #include <unistd.h>
@@ -16,18 +23,12 @@
 //#include <BAT/BCLog.h>
 #include <BAT/BCHistogramFitter.h>
 
-#include "GatorStructs.h"
-#include "GatorCalibFunc.h"
-//#include "GatorCalibFitters.h"
-//#include "GatorCalibScr.h"
-//#include "GatorDataLoader.hh"
-
 
 using namespace std;
 
 void usage();
 
-extern TApplication* theApp=NULL;
+TApplication* theApp;
 
 //Load the data from the root file of the fitted lines
 //const string archivedir("/home/atp/fpiastra/Gator/calibrations/archive/");

@@ -1,3 +1,6 @@
+#include "GatorGlobals.hh"
+#include "trigrate.hh"
+
 #include <cstdlib>
 #include <unistd.h>
 
@@ -38,10 +41,10 @@
 //#include <TGaxis.h>
 //#include <TMarker.h>
 //#include <TFitResult.h>
-#include "trigrate.hh"
 
 using namespace std;
 
+TApplication *theApp;
 
 int main(int argc, char** argv){
 	

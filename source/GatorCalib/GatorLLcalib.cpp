@@ -1,3 +1,9 @@
+#include "GatorGlobals.hh"
+#include "GatorStructs.h"
+#include "GatorCalibFunc.h"
+#include "GatorCalibScr.h"
+#include "misc.h"
+
 #include <string>
 #include <cstdlib>
 #include <unistd.h>
@@ -12,16 +18,11 @@
 //#include <BAT/BCLog.h>
 #include <BAT/BCHistogramFitter.h>
 
-#include "GatorStructs.h"
-#include "GatorCalibFunc.h"
-#include "GatorCalibScr.h"
-#include "misc.h"
-
 using namespace std;
 
 void usage();
 
-extern TApplication* theApp=NULL;
+TApplication* theApp;
 
 int main(int argc, char* argv[]){
 	

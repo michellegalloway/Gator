@@ -1,3 +1,10 @@
+#include "GatorGlobals.hh"
+#include "GatorStructs.h"
+#include "GatorCounter.hh"
+#include "GatorDataLoader.hh"
+#include "GatorSampleAnalysis.hh"
+#include "screenfncs.h"
+
 #include <cstdlib>
 #include <unistd.h>
 #include <fstream>
@@ -36,12 +43,6 @@
 //#include <TMarker.h>
 #include <TFitResult.h>
 
-#include "GatorStructs.h"
-#include "GatorCounter.hh"
-#include "GatorDataLoader.hh"
-#include "GatorSampleAnalysis.hh"
-#include "screenfncs.h"
-
 
 using namespace std;
 
@@ -50,7 +51,7 @@ void wait();
 
 TCanvas* c1;
 
-extern TApplication* theApp=NULL;
+TApplication* theApp;
 
 TApplication *myApp;
 

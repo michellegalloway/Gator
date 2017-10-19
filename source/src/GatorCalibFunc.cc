@@ -1,3 +1,4 @@
+#include "GatorGlobals.hh"
 #include "GammaLineLikelihood.hh"
 #include "GatorStructs.h"
 #include "GatorCalibFitters.h"
@@ -103,7 +104,7 @@ CalibLine lineInit(string line)
 }
 
 
-extern TApplication* theApp;
+//extern TApplication* theApp;
 
 bool doFitBAT(TH1D* MCAhisto, CalibLine& line)
 {

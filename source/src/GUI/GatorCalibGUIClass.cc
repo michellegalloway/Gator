@@ -799,9 +799,9 @@ void Gator::GatorCalibGUI::SaveSelectedLines(const char* outfilename)
 //  Definitions of the SpectraLoaderDialog class  //
 //------------------------------------------------//
 
-using namespace Gator;
+//using namespace Gator;
 
-SpectraLoaderDialog::SpectraLoaderDialog(Gator::GatorCalibGUI *_GatorCalib):
+Gator::SpectraLoaderDialog::SpectraLoaderDialog(Gator::GatorCalibGUI *_GatorCalib):
 	TGTransientFrame(gClient->GetRoot(), _GatorCalib, 300, 200, kVerticalFrame)
 {
 	
@@ -896,7 +896,7 @@ SpectraLoaderDialog::SpectraLoaderDialog(Gator::GatorCalibGUI *_GatorCalib):
 }
 
 
-void SpectraLoaderDialog::OnSingleClick(TGListTreeItem* item, Int_t btn)
+void Gator::SpectraLoaderDialog::OnSingleClick(TGListTreeItem* item, Int_t btn)
 {
 	if ((btn!=kButton1) || !item ) return;
 	
@@ -921,7 +921,7 @@ void SpectraLoaderDialog::OnSingleClick(TGListTreeItem* item, Int_t btn)
 }
 
 
-void SpectraLoaderDialog::OnDoubleClick(TGListTreeItem* item, Int_t btn)
+void Gator::SpectraLoaderDialog::OnDoubleClick(TGListTreeItem* item, Int_t btn)
 {
 	if ((btn!=kButton1) || !item) return;
 	
@@ -932,7 +932,7 @@ void SpectraLoaderDialog::OnDoubleClick(TGListTreeItem* item, Int_t btn)
 }
 
 
-void SpectraLoaderDialog::LoadSpectrum()
+void Gator::SpectraLoaderDialog::LoadSpectrum()
 {
 	if(fSpectName->GetDisplayText()==TString("")) return;
 	if( access(fSelectedDirText->GetDisplayText().Data(), R_OK|X_OK)!=0 ) return;
@@ -957,7 +957,7 @@ void SpectraLoaderDialog::LoadSpectrum()
 //  Definitions of the SaveLinesDialog class  //
 //--------------------------------------------//
 
-SaveLinesDialog::SaveLinesDialog(Gator::GatorCalibGUI *_GatorCalib):TGTransientFrame(gClient->GetRoot(), _GatorCalib, 300, 200, kVerticalFrame), fGatorCalib(_GatorCalib)
+Gator::SaveLinesDialog::SaveLinesDialog(Gator::GatorCalibGUI *_GatorCalib):TGTransientFrame(gClient->GetRoot(), _GatorCalib, 300, 200, kVerticalFrame), fGatorCalib(_GatorCalib)
 {
 	SetCleanup(kDeepCleanup);
 	Connect("CloseWindow()", "SaveLinesDialog", this, "CloseWindow()");
@@ -1025,7 +1025,7 @@ SaveLinesDialog::SaveLinesDialog(Gator::GatorCalibGUI *_GatorCalib):TGTransientF
 }
 
 
-void SaveLinesDialog::SaveSelectedLines()
+void Gator::SaveLinesDialog::SaveSelectedLines()
 {
 	TString outfilename = fSelectedOutFile->GetText();
 	if( (outfilename=="") || (!outfilename.EndsWith(".root")) ) return;
@@ -1037,13 +1037,13 @@ void SaveLinesDialog::SaveSelectedLines()
 }
 
 
-void SaveLinesDialog::SaveSelectedLines(const char* outfilename)
+void Gator::SaveLinesDialog::SaveSelectedLines(const char* outfilename)
 {
 	Emit("SaveSelectedLines(const char*)", outfilename);
 }
 
 
-void SaveLinesDialog::OnSingleClick(TGListTreeItem* item, Int_t btn)
+void Gator::SaveLinesDialog::OnSingleClick(TGListTreeItem* item, Int_t btn)
 {
 	if ((btn!=kButton1) || !item) return;
 	
@@ -1070,7 +1070,7 @@ void SaveLinesDialog::OnSingleClick(TGListTreeItem* item, Int_t btn)
 }
 	
 
-void SaveLinesDialog::OnDoubleClick(TGListTreeItem* item, Int_t btn)
+void Gator::SaveLinesDialog::OnDoubleClick(TGListTreeItem* item, Int_t btn)
 {
 	if ((btn!=kButton1) || !item ) return;
 	

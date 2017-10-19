@@ -1,3 +1,4 @@
+#include "GatorGlobals.hh"
 #include "GatorCalibGUIclass.hh"
 #include "GatorCalibClass.hh"
 #include "GatorStructs.h"
@@ -24,7 +25,7 @@ using namespace std;
 
 void usage();
 
-extern TApplication* theApp=NULL;
+//extern TApplication* theApp=NULL;
 
 int main(int argc, char* argv[]){
 	

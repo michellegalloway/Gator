@@ -22,6 +22,7 @@ else(BUILD_LIBS)
 	#----------------------------------------------------------------------------
 	#Find all the sourcefiles in src directory
 	set(_sources_gatoranalysis
+	  ${PROJECT_SOURCE_DIR}/src/GatorGlobals.cc
 	  ${PROJECT_SOURCE_DIR}/src/GatorCounter.cc
 	  ${PROJECT_SOURCE_DIR}/src/GatorDataLoader.cc
 	  ${PROJECT_SOURCE_DIR}/src/GatorSampleAnalysis.cc
@@ -50,4 +51,5 @@ endif(BUILD_LIBS)
 
 
 
-install(TARGETS sampleanalysis sample_rates DESTINATION bin)
+install(TARGETS sampleanalysis DESTINATION bin)
+install(TARGETS sample_rates DESTINATION bin)

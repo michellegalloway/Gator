@@ -96,70 +96,65 @@ namespace Gator{
 		void SelectAndDrawLine(const char* linename);
 		void GuiLineFit();
 
-#if defined(__CLING__)
-		//ClassDef(GatorCalibGUI,0)
-#endif
+		ClassDef(GatorCalibGUI,0)
 	};
 	
+
+//}//End of 'Gator' namespace
+
+
+//using namespace Gator;
+
+	class SpectraLoaderDialog: public TGTransientFrame
+	{
+	private:
+		Gator::GatorCalibGUI *fGatorCalib;
+
+		TGTextEntry *fSpectName;
+		TGListTree *fContents;
+		TGTextEntry *fSelectedDirText;
+
+		//TString DirName(TGListTreeItem* item);
+		SpectraLoaderDialog(){;};
+
+	public:
+		SpectraLoaderDialog(Gator::GatorCalibGUI *_GatorCalib);
+
+		virtual ~SpectraLoaderDialog(){Cleanup();};
+
+		//slots
+		void OnSingleClick(TGListTreeItem* item, Int_t btn);
+		void OnDoubleClick(TGListTreeItem* item, Int_t btn);
+		void LoadSpectrum(); // *SIGNAL*
+
+		ClassDef(SpectraLoaderDialog,0)
+	};
+
+
+
+	class SaveLinesDialog: public TGTransientFrame
+	{
+	private:
+		Gator::GatorCalibGUI *fGatorCalib;
+
+		TGListTree *fContents;
+		TGTextEntry *fSelectedOutFile;
+
+		SaveLinesDialog(){;};
+
+	public:
+		SaveLinesDialog(Gator::GatorCalibGUI *_GatorCalib);
+		virtual ~SaveLinesDialog(){Cleanup();};
+
+
+		//Slots
+		void OnSingleClick(TGListTreeItem* item, Int_t btn);
+		void OnDoubleClick(TGListTreeItem* item, Int_t btn);
+		void SaveSelectedLines(); 
+
+		void SaveSelectedLines(const char* outfilename); // *SIGNAL*
+
+		ClassDef(SaveLinesDialog,0)
+	};
+
 }//End of 'Gator' namespace
-
-
-
-using namespace Gator;
-
-class SpectraLoaderDialog: public TGTransientFrame
-{
-private:
-	Gator::GatorCalibGUI *fGatorCalib;
-	
-	TGTextEntry *fSpectName;
-	TGListTree *fContents;
-	TGTextEntry *fSelectedDirText;
-	
-	//TString DirName(TGListTreeItem* item);
-	SpectraLoaderDialog(){;};
-	
-public:
-	SpectraLoaderDialog(Gator::GatorCalibGUI *_GatorCalib);
-	
-	virtual ~SpectraLoaderDialog(){Cleanup();};
-
-	//slots
-	void OnSingleClick(TGListTreeItem* item, Int_t btn);
-	void OnDoubleClick(TGListTreeItem* item, Int_t btn);
-	void LoadSpectrum(); // *SIGNAL*
-	
-#if defined(__CLING__)
-	//ClassDef(SpectraLoaderDialog,0)
-#endif
-};
-
-
-
-class SaveLinesDialog: public TGTransientFrame
-{
-private:
-	Gator::GatorCalibGUI *fGatorCalib;
-	
-	TGListTree *fContents;
-	TGTextEntry *fSelectedOutFile;
-	
-	SaveLinesDialog(){;};
-	
-public:
-	SaveLinesDialog(Gator::GatorCalibGUI *_GatorCalib);
-	virtual ~SaveLinesDialog(){Cleanup();};
-	
-	
-	//Slots
-	void OnSingleClick(TGListTreeItem* item, Int_t btn);
-	void OnDoubleClick(TGListTreeItem* item, Int_t btn);
-	void SaveSelectedLines(); 
-	
-	void SaveSelectedLines(const char* outfilename); // *SIGNAL*
-	
-#if defined(__CLING__)
-	//ClassDef(SaveLinesDialog,0)
-#endif
-};
-
