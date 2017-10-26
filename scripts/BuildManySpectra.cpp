@@ -42,6 +42,7 @@ using namespace std;
 
 TH1D* loadSPE(const char* dir, Double_t& aqtime);
 TH1D* loadSpe(const char* dir, Double_t& aqtime);
+TH1D* loadSingleSPE(const char* name, Double_t& aqtime);
 TH1D* convert_histo_ENR(TH1D* hADC, TF1* calibfunc);
 
 
@@ -109,17 +110,20 @@ namespace GatorSpectra
 
 namespace GatorSpectra
 {
+	string HomeDir = gSystem->HomeDirectory();
 	
-	string SamplesArchive = "/Users/francesco/PhD/Gator/analysis/samples/";
-	string BkgdArchiveDir = "/Users/francesco/PhD/Gator/background/archive/";
+	string SessionsDir = HomeDir + string("/Gator/analysis/sessions/");
 	
-	string CalibArchiveDir = "/Users/francesco/PhD/Gator/calibrations/archive/";
+	string SamplesArchive = HomeDir + string("/Gator/analysis/samples/");
+	string BkgdArchiveDir = HomeDir + string("/Gator/background/archive/");
+	
+	string CalibArchiveDir = HomeDir + string("/Gator/calibrations/archive/");
 	
 	
 	
 	
 	
-	void AddSpectrum(string name, string dir, string calib="", Color_t _color=kBlack);
+	void AddSpectrum(string name, string dir, string calib="", Color_t _color=kBlack, bool IsSource=false);
 	void AddCalibSourceSpectrum(string name, string dir, string calib="", Color_t _color=kBlack);
 	void SetBkgdSpectrum(string dir, string calib="");
 	
@@ -134,6 +138,9 @@ namespace GatorSpectra
 	void MakePMTholderSpectra();
 	void MakePMTsBatchSpectra();
 	void MakePMTsFlangesSpectra();
+	void MakePulser2017Spectra();
+	void MakeSources2017Spectra();
+	void MakeBkgnd2017Spectra();
 	
 	vector<Spectrum*> SpectraVec;
 	Spectrum* BkgnSpect=NULL;
@@ -183,8 +190,25 @@ void GatorSpectra::Spectrum::MakeCalibSpectrum()
 	if(EnSpect) delete EnSpect;
 	
 	
-	EnSpect = convert_histo_ENR(RawSpec, Calib);
-	EnSpect->SetName( (name+string("Energy")).c_str() );
+	string formula = Calib->GetTitle();
+	TH1D *EnSpect;
+	
+	
+	//cout << "Debug ---> Calib formula: " << formula << endl;
+	
+	if(formula != string("1.*x"))
+	{
+		EnSpect = convert_histo_ENR(RawSpec, Calib);
+		EnSpect->SetName( (name+string("Energy")).c_str() );
+	}
+	else
+	{
+		//cout << "Debug ---> Energy spectrum not calibrated." << endl;
+		EnSpect = (TH1D*)RawSpec->Clone( (name+string("Energy")).c_str() );
+	}
+	
+	
+	
 	
 	EnSpecScaled = (TH1D*)EnSpect->Clone( (name+string("Scaled")).c_str() );
 	EnSpecScaled->Rebin( GatorSpectra::rebinning );
@@ -236,7 +260,7 @@ void GatorSpectra::Spectrum::Draw(string opt)
 	if(!EnSpecScaled) return;
 	
 	//EnSpecScaled->SetLineWidth(2);
-	EnSpecScaled->GetXaxis() -> SetRangeUser( minEn, maxEn );
+	//EnSpecScaled->GetXaxis() -> SetRangeUser( minEn, maxEn );
 	EnSpecScaled->Draw( opt.c_str() );
 	
 }
@@ -272,14 +296,51 @@ void GatorSpectra::AddCalibSourceSpectrum(string name, string dir, string calib,
 }
 
 
-void GatorSpectra::AddSpectrum(string name, string dir, string calib, Color_t _color)
+void GatorSpectra::AddSpectrum(string name, string dir, string calib, Color_t _color, bool IsSource)
 {
 
 	double aqtime;
-	string spedir = SamplesArchive+dir;
-	TH1D* hRaw = loadSPE(spedir.c_str(), aqtime);
+	string spedir;
+	TString testStr = dir.c_str();
+	TH1D* hRaw;
+	
+	if(testStr.BeginsWith("/"))
+	{
+		//cout << "Debug ---> Absolute path <" << testStr << ">" << endl;
+		spedir = dir;
+	}
+	else
+	{
+		spedir = SamplesArchive+dir;
+	}
+	
+	if( testStr.EndsWith(".SPE") || testStr.EndsWith(".Spe") )
+	{
+		//cout << "Debug ---> Single file <" << testStr << ">" << endl;
+		hRaw = loadSingleSPE(testStr.Data(), aqtime);
+	}
+	else
+	{
+		if(IsSource)
+		{
+			hRaw = loadSpe(spedir.c_str(), aqtime);
+		}
+		else
+		{
+			hRaw = loadSPE(spedir.c_str(), aqtime);
+		}
+	}
+	
 	GatorSpectra::Spectrum *spec = new GatorSpectra::Spectrum(name, hRaw, aqtime, _color);
-	spec->LoadCalib(calib);
+	if(calib==string("NOCALIB"))
+	{
+		spec->SetCalib( new TF1("Calib", "1.*x", hRaw->GetBinLowEdge(1), hRaw->GetBinLowEdge(hRaw->GetNbinsX()+1)) );
+	}
+	else
+	{
+		spec->LoadCalib(calib);
+	}
+	
 	spec->MakeCalibSpectrum();
 	
 	
@@ -801,6 +862,112 @@ void GatorSpectra::MakePMTsFlangesSpectra()
 	
 	if(BkgnSpect){
 		leg->AddEntry(BkgnSpect->GetHisto(), (BkgnSpect->GetName()).c_str(), "L");
+	}
+	
+	leg->Draw();
+}
+
+
+void GatorSpectra::MakePulser2017Spectra()
+{
+	if(c1) delete c1;
+	
+	c1 = new TCanvas("c1","",1200,500);
+	c1->SetLogy();
+
+	
+	TLegend* leg = new TLegend(0.65, 0.85, 0.8, 0.60);
+	leg->SetBorderSize(0);
+	
+	GatorSpectra::AddSpectrum("5V, No PZ adj", GatorSpectra::SessionsDir+string("Pulser/Spe/Pulser_20170924_5V_1kHz_ShapeGauss6usec_PzNotAdj_Busy_PUR.Spe"), "NOCALIB", kRed-3);
+	GatorSpectra::AddSpectrum("5V, PZ adj", GatorSpectra::SessionsDir+string("Pulser/Spe/Pulser_20170924_5V_1kHz_ShapeGauss6usec_PZadj.Spe"), "NOCALIB", kBlue+2);
+	GatorSpectra::AddSpectrum("5V, PZ adj + BUSY", GatorSpectra::SessionsDir+string("Pulser/Spe/Pulser_20170924_5V_1kHz_ShapeGauss6usec_PZadj_Busy.Spe"), "NOCALIB", kGreen+1);
+	GatorSpectra::AddSpectrum("5V, PZ adj + BUSY + PUR", GatorSpectra::SessionsDir+string("Pulser/Spe/Pulser_20170924_5V_1kHz_ShapeGauss6usec_PZadj_Busy_PUR.SPE"), "NOCALIB", kOrange+2);
+	GatorSpectra::AddSpectrum("1V, PZ adj + BUSY + PUR", GatorSpectra::SessionsDir+string("Pulser/Spe/Pulser_20170924_1V_1kHz_ShapeGauss6usec_PZadj_Busy_PUR.Spe"), "NOCALIB", kMagenta);
+	
+	unsigned nDs=GatorSpectra::SpectraVec.size();
+	for(unsigned iDs=0; iDs<nDs; iDs++)
+	{
+		SpectraVec.at(iDs)->GetHisto()->SetTitle(";MCA channel; Differential rate [counts sample^{-1} day^{-1}]");
+		if(iDs>0){
+			SpectraVec.at(iDs)->Draw("same HIST");
+		}else{
+			SpectraVec.at(iDs)->Draw("HIST");
+		}
+		leg->AddEntry(SpectraVec.at(iDs)->GetHisto(), (SpectraVec.at(iDs)->GetName()).c_str(), "L");
+	}
+	
+	leg->Draw();
+}
+
+
+void GatorSpectra::MakeSources2017Spectra()
+{
+	if(c1) delete c1;
+	
+	c1 = new TCanvas("c1","",1200,500);
+	c1->SetLogy();
+
+	
+	TLegend* leg = new TLegend(0.65, 0.85, 0.8, 0.60);
+	leg->SetBorderSize(0);
+	
+	
+	GatorSpectra::rebinning = 1;
+	
+	GatorSpectra::AddSpectrum("228Th source", GatorSpectra::CalibArchiveDir+string("2017.09.25/228Th/"), "NOCALIB", kRed-3, true);
+	GatorSpectra::AddSpectrum("60Co source", GatorSpectra::CalibArchiveDir+string("2017.09.25/60Co/"), "NOCALIB", kBlue+2, true);
+	GatorSpectra::AddSpectrum("152Eu source", GatorSpectra::CalibArchiveDir+string("2017.09.25/152Eu/"), "NOCALIB", kGreen+1, true);
+	
+	unsigned nDs=GatorSpectra::SpectraVec.size();
+	for(unsigned iDs=0; iDs<nDs; iDs++)
+	{
+		SpectraVec.at(iDs)->GetHisto()->SetTitle(";MCA channel; Differential rate [counts sample^{-1} day^{-1}]");
+		if(iDs>0){
+			SpectraVec.at(iDs)->Draw("same HIST");
+		}else{
+			SpectraVec.at(iDs)->Draw("HIST");
+		}
+		leg->AddEntry(SpectraVec.at(iDs)->GetHisto(), (SpectraVec.at(iDs)->GetName()).c_str(), "L");
+	}
+	
+	leg->Draw();
+}
+
+
+void GatorSpectra::MakeBkgnd2017Spectra()
+{
+	if(c1) delete c1;
+	
+	c1 = new TCanvas("c1","",1200,500);
+	c1->SetLogy();
+	
+	GatorSpectra::rebinning = 1;
+	
+	TLegend* leg = new TLegend(0.65, 0.85, 0.8, 0.60);
+	leg->SetBorderSize(0);
+	
+	
+	GatorSpectra::AddSpectrum("Bkgd: Closed shield, 3slpm purging", GatorSpectra::BkgdArchiveDir+string("2017b/WithPUR/"), "NOCALIB", kGreen+1);
+	GatorSpectra::AddSpectrum("Bkgd: Closed shield, 3slpm purging, No PUR", GatorSpectra::BkgdArchiveDir+string("2017b/NoPUR/"), "NOCALIB", kMagenta);
+	
+	GatorSpectra::AddSpectrum("Bkgd: Closed shield, no purging", GatorSpectra::BkgdArchiveDir+string("2017b/NoPurging/"), "NOCALIB", kBlue+2);
+	
+	//GatorSpectra::AddSpectrum("Bkgd: Open shield, no purging", GatorSpectra::BkgdArchiveDir+string("2017b/OpenShield/"), "NOCALIB", kRed-3);
+	
+	GatorSpectra::AddSpectrum("Himalaya salt", GatorSpectra::SamplesArchive+string("HimalayaSalt/SPE/"), "NOCALIB", kRed-3);
+	
+	
+	unsigned nDs=GatorSpectra::SpectraVec.size();
+	for(unsigned iDs=0; iDs<nDs; iDs++)
+	{
+		SpectraVec.at(iDs)->GetHisto()->SetTitle(";MCA channel; Differential rate [counts channel^{-1} day^{-1}]");
+		if(iDs>0){
+			SpectraVec.at(iDs)->Draw("same HIST");
+		}else{
+			SpectraVec.at(iDs)->Draw("HIST");
+		}
+		leg->AddEntry(SpectraVec.at(iDs)->GetHisto(), (SpectraVec.at(iDs)->GetName()).c_str(), "L");
 	}
 	
 	leg->Draw();
