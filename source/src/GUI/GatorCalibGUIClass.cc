@@ -1,6 +1,9 @@
+#include "GatorCalibClass.hh"
 #include "GUI/GatorCalibGUIClass.hh"
 
 #include "TQObject.h"
+#include "TGPicture.h"
+
 #include "TApplication.h"
 #include "TSystemDirectory.h"
 #include "TList.h"
@@ -11,15 +14,16 @@
 #include "TF1.h"
 
 
+
 #include <unistd.h>
 
 
 using namespace std;
 
 
-const TGPicture *gIcon;
+const TGPicture *gIcon=NULL;
 
-Gator::GatorCalibGUI::GatorCalibGUI(): TGMainFrame(TGClient::Instance()->GetRoot(), 800, 600)
+GatorCalibGUI::GatorCalibGUI(): TGMainFrame(gClient->GetRoot(), 800, 600)
 {
 	gIcon = gClient->GetPicture("rootdb_t.xpm");
 	
@@ -71,13 +75,14 @@ Gator::GatorCalibGUI::GatorCalibGUI(): TGMainFrame(TGClient::Instance()->GetRoot
 }
 
 
-Gator::GatorCalibGUI::~GatorCalibGUI() {
+/*
+GatorCalibGUI::~GatorCalibGUI() {
 	//Clean up used widgets: frames, buttons, layout hints
 	Cleanup();
 }
+*/
 
-
-void Gator::GatorCalibGUI::MakeSpectraManagerTab(TGTab *pTabs)
+void GatorCalibGUI::MakeSpectraManagerTab(TGTab *pTabs)
 {
 	//Add the tab relative to the calibration spectra
 	TGCompositeFrame *fSpectTab = pTabs->AddTab("Spectra"); //This panel is to load, select and draw the calibration spectra
@@ -110,7 +115,7 @@ void Gator::GatorCalibGUI::MakeSpectraManagerTab(TGTab *pTabs)
 }
 
 
-void Gator::GatorCalibGUI::MakeLinesManagerTab(TGTab *pTabs)
+void GatorCalibGUI::MakeLinesManagerTab(TGTab *pTabs)
 {
 	//Build the layout of the line manager tab
 	TGCompositeFrame *fLinesManTab = pTabs->AddTab("Lines"); //This panel is to manage the lines (add, remove, etc...)
@@ -222,17 +227,17 @@ void Gator::GatorCalibGUI::MakeLinesManagerTab(TGTab *pTabs)
 	
 	
 	//"Connect" section
-	pAddLineButt->Connect("Clicked()", "Gator::GatorCalibGUI", this, "AddLineFromGui()");
-	pLoadLinesButt->Connect("Clicked()", "Gator::GatorCalibGUI", this, "LoadLinesFromFile()");
-	pSaveLinesButt->Connect("Clicked()", "Gator::GatorCalibGUI", this, "OpenSavingDialog()");
+	pAddLineButt->Connect("Clicked()", "GatorCalibGUI", this, "AddLineFromGui()");
+	pLoadLinesButt->Connect("Clicked()", "GatorCalibGUI", this, "LoadLinesFromFile()");
+	pSaveLinesButt->Connect("Clicked()", "GatorCalibGUI", this, "OpenSavingDialog()");
 	
-	fDirsContents->Connect("Clicked(TGListTreeItem*,Int_t)","Gator::GatorCalibGUI",this, "OnSingleClickFilesTree(TGListTreeItem*,Int_t)");
-	fDirsContents->Connect("DoubleClicked(TGListTreeItem*,Int_t)","Gator::GatorCalibGUI",this, "OnDoubleClickFilesTree(TGListTreeItem*,Int_t)");
+	fDirsContents->Connect("Clicked(TGListTreeItem*,Int_t)","GatorCalibGUI",this, "OnSingleClickFilesTree(TGListTreeItem*,Int_t)");
+	fDirsContents->Connect("DoubleClicked(TGListTreeItem*,Int_t)","GatorCalibGUI",this, "OnDoubleClickFilesTree(TGListTreeItem*,Int_t)");
 	
 }
 
 
-void Gator::GatorCalibGUI::MakeLineFitTab(TGTab *pTabs)
+void GatorCalibGUI::MakeLineFitTab(TGTab *pTabs)
 {
 	TGCompositeFrame *fLineFitTab = pTabs->AddTab("Fits"); //This panel is to fit the lines
 	
@@ -449,12 +454,12 @@ void Gator::GatorCalibGUI::MakeLineFitTab(TGTab *pTabs)
 	
 	//"Connect" section
 	fFitLineSelBox->Connect("Selected(const char*)","GatorCalibGUI",this,"SelectAndDrawLine(const char*)");
-	pFitLineButton->Connect("Clicked()","Gator::GatorCalibGUI",this,"GuiLineFit()");
+	pFitLineButton->Connect("Clicked()","GatorCalibGUI",this,"GuiLineFit()");
 	
 }
 
 
-void Gator::GatorCalibGUI::OpenSpectrumLoadWin()
+void GatorCalibGUI::OpenSpectrumLoadWin()
 {
 	if( IsDebug() ){
 		cout << "Debug---> GatorCalibMainFrame::OpenSpectrumLoadWin(): activated." << endl;
@@ -464,7 +469,7 @@ void Gator::GatorCalibGUI::OpenSpectrumLoadWin()
 }
 
 
-void Gator::GatorCalibGUI::FillSpectraList()
+void GatorCalibGUI::FillSpectraList()
 {
 	if(fSpectSel) fSpectSel->RemoveAll();
 	if(fSpectraList) fSpectraList->RemoveAll();
@@ -478,10 +483,10 @@ void Gator::GatorCalibGUI::FillSpectraList()
 }
 
 
-void Gator::GatorCalibGUI::SelectAndDrawSpect(const char* sourcename)
+void GatorCalibGUI::SelectAndDrawSpect(const char* sourcename)
 {
 	if(fDebug){
-		cout << "Debug---> Gator::GatorCalibGUI::SelectAndDrawSpect(...): Executed with sourcename=" << sourcename << endl;
+		cout << "Debug---> GatorCalibGUI::SelectAndDrawSpect(...): Executed with sourcename=" << sourcename << endl;
 	}
 	
 	fSpectrumCanvas->GetCanvas()->cd();
@@ -494,7 +499,7 @@ void Gator::GatorCalibGUI::SelectAndDrawSpect(const char* sourcename)
 }
 
 
-void Gator::GatorCalibGUI::AddLineFromGui()
+void GatorCalibGUI::AddLineFromGui()
 {
 	//Make line name
 	stringstream lName; lName.str("");
@@ -530,7 +535,7 @@ void Gator::GatorCalibGUI::AddLineFromGui()
 		fLinesmap[lName.str()]->histo->SetBinContent( iBin-firstbin+1, spectrum->GetBinContent(iBin) );
 	}
 	
-	fLinesmap[lName.str()]->fit = new TF1("ff_MCA", &Gator::GatorCalib::peakFitFuncB, fHistoLowEdgeInput->GetNumber(), fHistoUpEdgeInput->GetNumber(), 7);
+	fLinesmap[lName.str()]->fit = new TF1("ff_MCA", &GatorCalib::peakFitFuncB, fHistoLowEdgeInput->GetNumber(), fHistoUpEdgeInput->GetNumber(), 7);
 	
 	//fLinesSel->AddEntry(lName.str().c_str(),-1);
 	//fFitLineSelBox->AddEntry(lName.str().c_str(), -1);
@@ -548,7 +553,7 @@ void Gator::GatorCalibGUI::AddLineFromGui()
 }
 
 
-void Gator::GatorCalibGUI::FillLinesLists()
+void GatorCalibGUI::FillLinesLists()
 {
 	//Clear the lists and remake it
 	if(fLinesSel) fLinesSel->RemoveAll();
@@ -567,7 +572,7 @@ void Gator::GatorCalibGUI::FillLinesLists()
 }
 
 
-void Gator::GatorCalibGUI::OnSingleClickFilesTree(TGListTreeItem* item, Int_t btn)
+void GatorCalibGUI::OnSingleClickFilesTree(TGListTreeItem* item, Int_t btn)
 {
 	if ((btn!=kButton1) || !item) return;
 	
@@ -582,14 +587,14 @@ void Gator::GatorCalibGUI::OnSingleClickFilesTree(TGListTreeItem* item, Int_t bt
 		{
 			TSystemDirectory dir( filefullname.Data(), filefullname.Data() );
 			TList *files = dir.GetListOfFiles();
-			cout << "Debug---> Gator::GatorCalibGUI::OnSingleClickFilesTree(...): <" << filefullname << "> is a directory containing " << files->GetEntries() << " files." << endl;
+			cout << "Debug---> GatorCalibGUI::OnSingleClickFilesTree(...): <" << filefullname << "> is a directory containing " << files->GetEntries() << " files." << endl;
 		}
 		
 		if( !(bool)item->GetUserData() )
 		{
 			if(IsDebug())
 			{
-				cout << "Debug---> Gator::GatorCalibGUI::OnSingleClickFilesTree(...): The directory <" << filefullname << "> was not browsed before." << endl;
+				cout << "Debug---> GatorCalibGUI::OnSingleClickFilesTree(...): The directory <" << filefullname << "> was not browsed before." << endl;
 			}
 			BrowseNewDir(item, fDirsContents, true);
 			item->SetOpen(true);
@@ -603,7 +608,7 @@ void Gator::GatorCalibGUI::OnSingleClickFilesTree(TGListTreeItem* item, Int_t bt
 }
 
 
-void Gator::GatorCalibGUI::OnDoubleClickFilesTree(TGListTreeItem* item, Int_t btn)
+void GatorCalibGUI::OnDoubleClickFilesTree(TGListTreeItem* item, Int_t btn)
 {
 	if ((btn!=kButton1) || !item) return;
 	
@@ -614,10 +619,10 @@ void Gator::GatorCalibGUI::OnDoubleClickFilesTree(TGListTreeItem* item, Int_t bt
 	TSystemFile selectedfile(filefullname, pathname);
 	
 	if(IsDebug()){
-		cout << "\nDebug---> Gator::GatorCalibGUI::OnDoubleClickFilesTree(...): item->GetText() = " << item->GetText() << endl;
-		cout << "Debug---> Gator::GatorCalibGUI::OnDoubleClickFilesTree(...): FullFileName(item) = " << FullFileName(item) << endl;
-		cout << "Debug---> Gator::GatorCalibGUI::OnDoubleClickFilesTree(...): selectedfile.GetName() = " << selectedfile.GetName() << endl;
-		cout << "Debug---> Gator::GatorCalibGUI::OnDoubleClickFilesTree(...): selectedfile.GetTitle() = " << selectedfile.GetTitle() << endl;
+		cout << "\nDebug---> GatorCalibGUI::OnDoubleClickFilesTree(...): item->GetText() = " << item->GetText() << endl;
+		cout << "Debug---> GatorCalibGUI::OnDoubleClickFilesTree(...): FullFileName(item) = " << FullFileName(item) << endl;
+		cout << "Debug---> GatorCalibGUI::OnDoubleClickFilesTree(...): selectedfile.GetName() = " << selectedfile.GetName() << endl;
+		cout << "Debug---> GatorCalibGUI::OnDoubleClickFilesTree(...): selectedfile.GetTitle() = " << selectedfile.GetTitle() << endl;
 	}
 	
 	if(filefullname.EndsWith(".root"))
@@ -628,7 +633,7 @@ void Gator::GatorCalibGUI::OnDoubleClickFilesTree(TGListTreeItem* item, Int_t bt
 }
 
 
-void Gator::GatorCalibGUI::LoadLinesFromFile()
+void GatorCalibGUI::LoadLinesFromFile()
 {
 	TString filename = fInputLinesFile->GetText();
 	
@@ -641,7 +646,7 @@ void Gator::GatorCalibGUI::LoadLinesFromFile()
 }
 
 
-void Gator::GatorCalibGUI::SelectAndDrawLine(const char* linename)
+void GatorCalibGUI::SelectAndDrawLine(const char* linename)
 {
 	fFitCanvas->GetCanvas()->cd();
 	
@@ -656,7 +661,7 @@ void Gator::GatorCalibGUI::SelectAndDrawLine(const char* linename)
 }
 
 
-void Gator::GatorCalibGUI::GuiLineFit()
+void GatorCalibGUI::GuiLineFit()
 {
 	if(!fFitLineSelBox->GetSelectedEntry()) return;
 	
@@ -670,16 +675,16 @@ void Gator::GatorCalibGUI::GuiLineFit()
 	
 	if(IsDebug())
 	{
-		cout << "\nDebug ---> Gator::GatorCalibGUI::GuiLineFit(): line name = " << line->linename << endl;
-		cout << "Debug ---> Gator::GatorCalibGUI::GuiLineFit(): line histo address = " << line->histo << endl;
-		cout << "Debug ---> Gator::GatorCalibGUI::GuiLineFit(): line fit address = " << line->fit << endl;
+		cout << "\nDebug ---> GatorCalibGUI::GuiLineFit(): line name = " << line->linename << endl;
+		cout << "Debug ---> GatorCalibGUI::GuiLineFit(): line histo address = " << line->histo << endl;
+		cout << "Debug ---> GatorCalibGUI::GuiLineFit(): line fit address = " << line->fit << endl;
 	}
 	
 	if(!( line->histo && line->fit )) return;
 	
 	if(IsDebug())
 	{
-		cout << "Debug ---> Gator::GatorCalibGUI::GuiLineFit(): initialising the fit parameters.... ";
+		cout << "Debug ---> GatorCalibGUI::GuiLineFit(): initialising the fit parameters.... ";
 	}
 	
 	line->FitInit( fMeanEntry->GetNumber(), fSigmaEntry->GetNumber(), fBetaEntry->GetNumber(), fAmplEntry->GetNumber(), fTailEntry->GetNumber());
@@ -687,9 +692,9 @@ void Gator::GatorCalibGUI::GuiLineFit()
 	if(IsDebug())
 	{
 		cout << " done" << endl;
-		cout << "Debug ---> Gator::GatorCalibGUI::GuiLineFit(): setting the fit range. " << endl;
-		cout << "Debug ---> Gator::GatorCalibGUI::GuiLineFit(): value of fFitRangeMinEntry = " << fFitRangeMinEntry->GetNumber() << endl;
-		cout << "Debug ---> Gator::GatorCalibGUI::GuiLineFit(): value of fFitRangeMaxEntry = " << fFitRangeMaxEntry->GetNumber() << endl;
+		cout << "Debug ---> GatorCalibGUI::GuiLineFit(): setting the fit range. " << endl;
+		cout << "Debug ---> GatorCalibGUI::GuiLineFit(): value of fFitRangeMinEntry = " << fFitRangeMinEntry->GetNumber() << endl;
+		cout << "Debug ---> GatorCalibGUI::GuiLineFit(): value of fFitRangeMaxEntry = " << fFitRangeMaxEntry->GetNumber() << endl;
 	}
 	
 	line->SetFitRange( fFitRangeMinEntry->GetNumber(), fFitRangeMaxEntry->GetNumber() );
@@ -697,11 +702,11 @@ void Gator::GatorCalibGUI::GuiLineFit()
 	
 	fFitCanvas->GetCanvas()->cd();
 	
-	BCHistogramFitter *histofitter = Gator::GatorCalib::FitLine(*line);
+	BCHistogramFitter *histofitter = GatorCalib::FitLine(*line);
 	
 	if(!histofitter)
 	{
-		cerr << "\nWARNING ---> Gator::GatorCalibGUI::GuiLineFit(): The fit for line <" << line->linename << "> failed!" << endl;
+		cerr << "\nWARNING ---> GatorCalibGUI::GuiLineFit(): The fit for line <" << line->linename << "> failed!" << endl;
 		return;
 	}
 	
@@ -740,13 +745,13 @@ void Gator::GatorCalibGUI::GuiLineFit()
 }
 
 
-void Gator::GatorCalibGUI::OpenSavingDialog()
+void GatorCalibGUI::OpenSavingDialog()
 {
 	SaveLinesDialog *dialog = new SaveLinesDialog(this);
 }
 
 
-void Gator::GatorCalibGUI::SaveSelectedLines(const char* outfilename)
+void GatorCalibGUI::SaveSelectedLines(const char* outfilename)
 {
 	
 	map<string, CalibLine*> oldLinesMap = fLinesmap;
@@ -767,7 +772,7 @@ void Gator::GatorCalibGUI::SaveSelectedLines(const char* outfilename)
 	
 	if( IsDebug() )
 	{
-		cout << "Debug---> Gator::GatorCalibGUI::SaveSelectedLines(...): Number of lines to be saved: " << fSaveLinesList.size() << endl;
+		cout << "Debug---> GatorCalibGUI::SaveSelectedLines(...): Number of lines to be saved: " << fSaveLinesList.size() << endl;
 	}
 	
 	map<string, CalibLine*>::iterator It;
@@ -782,8 +787,8 @@ void Gator::GatorCalibGUI::SaveSelectedLines(const char* outfilename)
 	
 	if( IsDebug() )
 	{
-		cout << "Debug---> Gator::GatorCalibGUI::SaveSelectedLines(...): fLinesmap.size() = " << fLinesmap.size() << endl;
-		cout << "Debug---> Gator::GatorCalibGUI::SaveSelectedLines(...): Saving the lines in the file <" << outfilename << ">" << endl;
+		cout << "Debug---> GatorCalibGUI::SaveSelectedLines(...): fLinesmap.size() = " << fLinesmap.size() << endl;
+		cout << "Debug---> GatorCalibGUI::SaveSelectedLines(...): Saving the lines in the file <" << outfilename << ">" << endl;
 	}
 	
 	
@@ -801,7 +806,7 @@ void Gator::GatorCalibGUI::SaveSelectedLines(const char* outfilename)
 
 //using namespace Gator;
 
-Gator::SpectraLoaderDialog::SpectraLoaderDialog(Gator::GatorCalibGUI *_GatorCalib):
+SpectraLoaderDialog::SpectraLoaderDialog(GatorCalibGUI *_GatorCalib):
 	TGTransientFrame(gClient->GetRoot(), _GatorCalib, 300, 200, kVerticalFrame)
 {
 	
@@ -882,7 +887,7 @@ Gator::SpectraLoaderDialog::SpectraLoaderDialog(Gator::GatorCalibGUI *_GatorCali
 	
 	pOkButt->Connect("Clicked()", "SpectraLoaderDialog", this, "LoadSpectrum()");
 	pOkButt->Connect("Clicked()", "SpectraLoaderDialog", this, "CloseWindow()");
-	//Connect("LoadSpectrum()", "Gator::GatorCalibGUI", fGatorCalib, "FillSpectraList()");
+	//Connect("LoadSpectrum()", "GatorCalibGUI", fGatorCalib, "FillSpectraList()");
 	pCancelButt->Connect("Clicked()", "SpectraLoaderDialog", this, "CloseWindow()");
 	
 	
@@ -896,7 +901,7 @@ Gator::SpectraLoaderDialog::SpectraLoaderDialog(Gator::GatorCalibGUI *_GatorCali
 }
 
 
-void Gator::SpectraLoaderDialog::OnSingleClick(TGListTreeItem* item, Int_t btn)
+void SpectraLoaderDialog::OnSingleClick(TGListTreeItem* item, Int_t btn)
 {
 	if ((btn!=kButton1) || !item ) return;
 	
@@ -921,7 +926,7 @@ void Gator::SpectraLoaderDialog::OnSingleClick(TGListTreeItem* item, Int_t btn)
 }
 
 
-void Gator::SpectraLoaderDialog::OnDoubleClick(TGListTreeItem* item, Int_t btn)
+void SpectraLoaderDialog::OnDoubleClick(TGListTreeItem* item, Int_t btn)
 {
 	if ((btn!=kButton1) || !item) return;
 	
@@ -932,7 +937,7 @@ void Gator::SpectraLoaderDialog::OnDoubleClick(TGListTreeItem* item, Int_t btn)
 }
 
 
-void Gator::SpectraLoaderDialog::LoadSpectrum()
+void SpectraLoaderDialog::LoadSpectrum()
 {
 	if(fSpectName->GetDisplayText()==TString("")) return;
 	if( access(fSelectedDirText->GetDisplayText().Data(), R_OK|X_OK)!=0 ) return;
@@ -957,7 +962,7 @@ void Gator::SpectraLoaderDialog::LoadSpectrum()
 //  Definitions of the SaveLinesDialog class  //
 //--------------------------------------------//
 
-Gator::SaveLinesDialog::SaveLinesDialog(Gator::GatorCalibGUI *_GatorCalib):TGTransientFrame(gClient->GetRoot(), _GatorCalib, 300, 200, kVerticalFrame), fGatorCalib(_GatorCalib)
+SaveLinesDialog::SaveLinesDialog(GatorCalibGUI *_GatorCalib):TGTransientFrame(gClient->GetRoot(), _GatorCalib, 300, 200, kVerticalFrame), fGatorCalib(_GatorCalib)
 {
 	SetCleanup(kDeepCleanup);
 	Connect("CloseWindow()", "SaveLinesDialog", this, "CloseWindow()");
@@ -1009,7 +1014,7 @@ Gator::SaveLinesDialog::SaveLinesDialog(Gator::GatorCalibGUI *_GatorCalib):TGTra
 	fContents->Connect("Clicked(TGListTreeItem*,Int_t)","SaveLinesDialog",this, "OnSingleClick(TGListTreeItem*,Int_t)");
 	fContents->Connect("DoubleClicked(TGListTreeItem*,Int_t)","SaveLinesDialog",this, "OnDoubleClick(TGListTreeItem*,Int_t)");
 	
-	Connect("SaveSelectedLines(const char*)","Gator::GatorCalibGUI", fGatorCalib, "SaveSelectedLines(const char*)");
+	Connect("SaveSelectedLines(const char*)","GatorCalibGUI", fGatorCalib, "SaveSelectedLines(const char*)");
 	pOkButt->Connect("Clicked()", "SaveLinesDialog", this, "SaveSelectedLines()");
 	//pOkButt->Connect("Clicked()", "SaveLinesDialog", this, "CloseWindow()");
 	pCancelButt->Connect("Clicked()", "SaveLinesDialog", this, "CloseWindow()");
@@ -1025,7 +1030,7 @@ Gator::SaveLinesDialog::SaveLinesDialog(Gator::GatorCalibGUI *_GatorCalib):TGTra
 }
 
 
-void Gator::SaveLinesDialog::SaveSelectedLines()
+void SaveLinesDialog::SaveSelectedLines()
 {
 	TString outfilename = fSelectedOutFile->GetText();
 	if( (outfilename=="") || (!outfilename.EndsWith(".root")) ) return;
@@ -1037,13 +1042,13 @@ void Gator::SaveLinesDialog::SaveSelectedLines()
 }
 
 
-void Gator::SaveLinesDialog::SaveSelectedLines(const char* outfilename)
+void SaveLinesDialog::SaveSelectedLines(const char* outfilename)
 {
 	Emit("SaveSelectedLines(const char*)", outfilename);
 }
 
 
-void Gator::SaveLinesDialog::OnSingleClick(TGListTreeItem* item, Int_t btn)
+void SaveLinesDialog::OnSingleClick(TGListTreeItem* item, Int_t btn)
 {
 	if ((btn!=kButton1) || !item) return;
 	
@@ -1070,7 +1075,7 @@ void Gator::SaveLinesDialog::OnSingleClick(TGListTreeItem* item, Int_t btn)
 }
 	
 
-void Gator::SaveLinesDialog::OnDoubleClick(TGListTreeItem* item, Int_t btn)
+void SaveLinesDialog::OnDoubleClick(TGListTreeItem* item, Int_t btn)
 {
 	if ((btn!=kButton1) || !item ) return;
 	
@@ -1125,9 +1130,9 @@ void InitFilesTree(TGListTree* pContents)
 	item->SetOpen(true);
 	
 	/*
-	cout << "Debug---> Gator::GatorCalibGUI::InitFilesTree(...): Before browsing the directories." << endl;
-	cout << "Debug---> Gator::GatorCalibGUI::InitFilesTree(...): item address = " << item << endl;
-	cout << "Debug---> Gator::GatorCalibGUI::InitFilesTree(...): item->GetText() = " << item->GetText() << endl;
+	cout << "Debug---> GatorCalibGUI::InitFilesTree(...): Before browsing the directories." << endl;
+	cout << "Debug---> GatorCalibGUI::InitFilesTree(...): item address = " << item << endl;
+	cout << "Debug---> GatorCalibGUI::InitFilesTree(...): item->GetText() = " << item->GetText() << endl;
 	*/
 	
 	vector<TString> parents;
@@ -1135,9 +1140,9 @@ void InitFilesTree(TGListTree* pContents)
 	{
 		do{
 			size_t pos = dirfullpath.find_last_of("/");
-			//cout << "Debug---> Gator::GatorCalibGUI::InitFilesTree(...): dirfullpath = " << dirfullpath << endl;
+			//cout << "Debug---> GatorCalibGUI::InitFilesTree(...): dirfullpath = " << dirfullpath << endl;
 			TString dirname = dirfullpath.substr(pos+1);
-			//cout << "Debug---> Gator::GatorCalibGUI::InitFilesTree(...): dirname = " << dirname << endl;
+			//cout << "Debug---> GatorCalibGUI::InitFilesTree(...): dirname = " << dirname << endl;
 			if(dirname!="")
 			{
 				parents.push_back(dirname);
@@ -1159,9 +1164,9 @@ void InitFilesTree(TGListTree* pContents)
 	}
 	
 	/*
-	cout << "Debug---> Gator::GatorCalibGUI::InitFilesTree(...): After browsing the directories." << endl;
-	cout << "Debug---> Gator::GatorCalibGUI::InitFilesTree(...): item address = " << item << endl;
-	cout << "Debug---> Gator::GatorCalibGUI::InitFilesTree(...): item->GetText() = " << item->GetText() << endl;
+	cout << "Debug---> GatorCalibGUI::InitFilesTree(...): After browsing the directories." << endl;
+	cout << "Debug---> GatorCalibGUI::InitFilesTree(...): item address = " << item << endl;
+	cout << "Debug---> GatorCalibGUI::InitFilesTree(...): item->GetText() = " << item->GetText() << endl;
 	*/
 	
 	/*
@@ -1209,9 +1214,9 @@ void InitDirsTree(TGListTree* pContents)
 	item->SetOpen(true);
 	
 	/*
-	cout << "Debug---> Gator::GatorCalibGUI::InitFilesTree(...): Before browsing the directories." << endl;
-	cout << "Debug---> Gator::GatorCalibGUI::InitFilesTree(...): item address = " << item << endl;
-	cout << "Debug---> Gator::GatorCalibGUI::InitFilesTree(...): item->GetText() = " << item->GetText() << endl;
+	cout << "Debug---> GatorCalibGUI::InitFilesTree(...): Before browsing the directories." << endl;
+	cout << "Debug---> GatorCalibGUI::InitFilesTree(...): item address = " << item << endl;
+	cout << "Debug---> GatorCalibGUI::InitFilesTree(...): item->GetText() = " << item->GetText() << endl;
 	*/
 	
 	vector<TString> parents;
@@ -1219,9 +1224,9 @@ void InitDirsTree(TGListTree* pContents)
 	{
 		do{
 			size_t pos = dirfullpath.find_last_of("/");
-			//cout << "Debug---> Gator::GatorCalibGUI::InitFilesTree(...): dirfullpath = " << dirfullpath << endl;
+			//cout << "Debug---> GatorCalibGUI::InitFilesTree(...): dirfullpath = " << dirfullpath << endl;
 			TString dirname = dirfullpath.substr(pos+1);
-			//cout << "Debug---> Gator::GatorCalibGUI::InitFilesTree(...): dirname = " << dirname << endl;
+			//cout << "Debug---> GatorCalibGUI::InitFilesTree(...): dirname = " << dirname << endl;
 			if(dirname!="")
 			{
 				parents.push_back(dirname);
@@ -1246,9 +1251,9 @@ void InitDirsTree(TGListTree* pContents)
 	}
 	
 	/*
-	cout << "Debug---> Gator::GatorCalibGUI::InitFilesTree(...): After browsing the directories." << endl;
-	cout << "Debug---> Gator::GatorCalibGUI::InitFilesTree(...): item address = " << item << endl;
-	cout << "Debug---> Gator::GatorCalibGUI::InitFilesTree(...): item->GetText() = " << item->GetText() << endl;
+	cout << "Debug---> GatorCalibGUI::InitFilesTree(...): After browsing the directories." << endl;
+	cout << "Debug---> GatorCalibGUI::InitFilesTree(...): item address = " << item << endl;
+	cout << "Debug---> GatorCalibGUI::InitFilesTree(...): item->GetText() = " << item->GetText() << endl;
 	*/
 	
 	//Populate the tree with the elements of the current directory

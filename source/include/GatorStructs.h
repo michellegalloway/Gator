@@ -8,9 +8,9 @@
 
 using namespace std;
 
-typedef struct LineStruct
+class LineStruct
 {
-	
+public:
 	string linename; //Mass+element+energy
 	
 	string mass; //Put here also whther it is a metastable isomer
@@ -93,11 +93,12 @@ typedef struct LineStruct
 	double LdActivFoM; //This is the Figure of Merit to select the most sensitive line for the specific group
 	double Activ; //Activity calculated anyway (if there is no detection this number doesn't have any meaning)
 	double Activ_err; //Activity calculated anyway (if there is no detection this number doesn't have any meaning)
-}LineStruct;
+};
 
 
-typedef struct ResultsStruct
+class ResultsStruct
 {
+public:
 	double RunTime;
 	double EffActiv;
 	double EffActiv_err;
@@ -105,7 +106,7 @@ typedef struct ResultsStruct
 	int DetecNum;
 	double EffDetLim;
 	double ScaleFact;
-}ResultsStruct;
+};
 
 
 class CalibLine

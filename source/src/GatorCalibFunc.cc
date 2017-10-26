@@ -284,7 +284,7 @@ bool doFitBAT(TH1D* MCAhisto, CalibLine& line)
 	BCLog::SetLogLevel(BCLog::debug);
 	
 	//BCHistogramFitter *histofitter = new BCHistogramFitter( ss_histoname.str().c_str(), tmphisto, ff_MCA );
-	Gator::BcHistoFitterFast *histofitter = new Gator::BcHistoFitterFast( tmphisto, ff_MCA );
+	BcHistoFitterFast *histofitter = new BcHistoFitterFast( tmphisto, ff_MCA );
 	
 	// set options for MCMC
 	//histofitter -> MCMCSetFlagPreRun (false);
@@ -580,9 +580,6 @@ TGraphErrors* plotResiduals(TF1* fit_pol2, TGraphErrors* grPlot, TFitResultPtr& 
 	
 }
 
-
-using Analysis::GatorCalib::GammaLineLikelihood;
-using Analysis::Param;
 
 bool doFitLL(TH1D* MCAhisto, CalibLine& line)
 {

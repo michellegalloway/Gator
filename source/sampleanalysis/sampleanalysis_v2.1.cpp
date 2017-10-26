@@ -51,9 +51,6 @@ void wait();
 
 TCanvas* c1;
 
-TApplication* theApp;
-
-TApplication *myApp;
 
 int main(){
 	

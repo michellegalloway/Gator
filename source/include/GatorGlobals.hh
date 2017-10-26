@@ -1,5 +1,5 @@
-#ifndef GATORGLOBALS__HH
-#define GATORGLOBALS__HH
+#ifndef GATORGLOBALS_HH
+#define GATORGLOBALS_HH
 
 #include "TApplication.h"
 

@@ -1,7 +1,5 @@
 #include "GatorGlobals.hh"
 #include "GatorCalibClass.hh"
-#include "BCHistoFitterFast.hh"
-
 
 #include "TCanvas.h"
 #include "TApplication.h"
@@ -28,14 +26,20 @@
 #include <iostream>
 #include <cstdlib>
 
-Gator::GatorCalib::GatorCalib()
+
+
+GatorCalib::GatorCalib()
 {
 	fHisto=NULL;
 	fDebug=false;
 }
 
+GatorCalib::~GatorCalib()
+{
+	return;
+}
 
-CalibLine* Gator::GatorCalib::AddLine(CalibLine *line, const string& spectrumname)
+CalibLine* GatorCalib::AddLine(CalibLine *line, const string& spectrumname)
 {
 	if(fSpectramap.find(spectrumname) == fSpectramap.end()) return NULL;
 	
@@ -63,7 +67,7 @@ CalibLine* Gator::GatorCalib::AddLine(CalibLine *line, const string& spectrumnam
 		line->histo->Fill( pSpect->GetBinCenter(iBin), pSpect->GetBinContent(iBin) );
 	}
 	
-	line->fit = new TF1("ff_MCA", &Gator::GatorCalib::peakFitFuncB, xmin, xmax, 7);
+	line->fit = new TF1("ff_MCA", &GatorCalib::peakFitFuncB, xmin, xmax, 7);
 	
 	if(fLinesmap.find(line->linename) != fLinesmap.end()){
 		if(fLinesmap[line->linename]) delete fLinesmap[line->linename];
@@ -75,7 +79,7 @@ CalibLine* Gator::GatorCalib::AddLine(CalibLine *line, const string& spectrumnam
 }
 
 
-CalibLine* Gator::GatorCalib::AddLine(const string& _massnum, const string& _element, const double& _litEn, const double& _litEnErr, const string& spectrum)
+CalibLine* GatorCalib::AddLine(const string& _massnum, const string& _element, const double& _litEn, const double& _litEnErr, const string& spectrum)
 {
 	if(fSpectramap.find(spectrum) == fSpectramap.end()) return NULL;
 	
@@ -87,7 +91,13 @@ CalibLine* Gator::GatorCalib::AddLine(const string& _massnum, const string& _ele
 }
 
 
-void Gator::GatorCalib::LoadCalibFiles(const string& sourcename, const string& dir)
+CalibLine* GatorCalib::AddLine(const string& _massnum, const string& _element, const double& _litEn, const string& spectrum)
+{
+	return AddLine(_massnum, _element, _litEn, 0.0, spectrum);
+}
+
+
+void GatorCalib::LoadCalibFiles(const string& sourcename, const string& dir)
 {
 	if( fSpectramap.find(sourcename)!=fSpectramap.end())
 	{
@@ -96,7 +106,7 @@ void Gator::GatorCalib::LoadCalibFiles(const string& sourcename, const string& d
 	
 	double calibtime = 0.;
 	cout << "Calibration dir: <" << dir << ">" << endl;
-	TH1D* MCAhisto = Gator::GatorCalib::loadSpe(dir.c_str(), calibtime);
+	TH1D* MCAhisto = GatorCalib::loadSpe(dir.c_str(), calibtime);
 	if(!MCAhisto) return;
 	MCAhisto->SetName((sourcename+string("_MCAspec")).c_str());
 	MCAhisto->SetTitle(";MCA channel; Counts");
@@ -107,7 +117,7 @@ void Gator::GatorCalib::LoadCalibFiles(const string& sourcename, const string& d
 }
 
 
-TH1D* Gator::GatorCalib::SelectSpectrum(const string& sourcename)
+TH1D* GatorCalib::SelectSpectrum(const string& sourcename)
 {
 	if( fSpectramap.find(sourcename)==fSpectramap.end())
 	{
@@ -121,7 +131,7 @@ TH1D* Gator::GatorCalib::SelectSpectrum(const string& sourcename)
 }
 
 
-TH1D* Gator::GatorCalib::DrawSpectrum(const string& opt)
+TH1D* GatorCalib::DrawSpectrum(const string& opt)
 {
 	if(fHisto) fHisto->Draw(opt.c_str());
 	
@@ -129,7 +139,7 @@ TH1D* Gator::GatorCalib::DrawSpectrum(const string& opt)
 }
 
 
-TH1D* Gator::GatorCalib::GetSpectrum(const string& sourcename)
+TH1D* GatorCalib::GetSpectrum(const string& sourcename)
 {
 	if( fSpectramap.find(sourcename)==fSpectramap.end()) return NULL;
 	
@@ -137,7 +147,7 @@ TH1D* Gator::GatorCalib::GetSpectrum(const string& sourcename)
 }
 
 
-CalibLine* Gator::GatorCalib::GetCalibLine(const string& linename)
+CalibLine* GatorCalib::GetCalibLine(const string& linename)
 {
 	if( fLinesmap.find(linename)==fLinesmap.end()) return NULL;
 	
@@ -145,7 +155,7 @@ CalibLine* Gator::GatorCalib::GetCalibLine(const string& linename)
 }
 
 
-BCHistogramFitter* Gator::GatorCalib::FitLine(CalibLine& line)
+BCHistogramFitter* GatorCalib::FitLine(CalibLine& line)
 {
 	if(IsDebug())
 	{
@@ -343,7 +353,7 @@ BCHistogramFitter* Gator::GatorCalib::FitLine(CalibLine& line)
 		cout << "\nDebug ---> Gator::GatorCalib::FitLine(...): instanciating the BCHistogramFitter object." << endl;
 	}
 	
-	Gator::BcHistoFitterFast *histofitter = new Gator::BcHistoFitterFast( tmphisto, ff_MCA );
+	BcHistoFitterFast *histofitter = new BcHistoFitterFast( tmphisto, ff_MCA );
 	
 	// set options for MCMC
 	//histofitter -> MCMCSetFlagPreRun (false);
@@ -525,7 +535,7 @@ BCHistogramFitter* Gator::GatorCalib::FitLine(CalibLine& line)
 
 
 
-bool Gator::GatorCalib::LoadLinesFromTree(const string& rootfile)
+bool GatorCalib::LoadLinesFromTree(const string& rootfile)
 {
 	if(access(rootfile.c_str(), R_OK) != 0)
 	{
@@ -610,7 +620,7 @@ bool Gator::GatorCalib::LoadLinesFromTree(const string& rootfile)
 }
 
 
-bool Gator::GatorCalib::SaveLines(const string& rootfile, bool update)
+bool GatorCalib::SaveLines(const string& rootfile, bool update)
 {
 	if(access(rootfile.c_str(), W_OK) != 0)
 	{
@@ -691,7 +701,7 @@ bool Gator::GatorCalib::SaveLines(const string& rootfile, bool update)
 
 
 
-TH1D* Gator::GatorCalib::loadSpe(const char* dir, double& aqtime)
+TH1D* GatorCalib::loadSpe(const char* dir, double& aqtime)
 {
 	//-------------------------------------------------//
 	// Load of the sample histogram from the SPE files //
@@ -825,7 +835,7 @@ TH1D* Gator::GatorCalib::loadSpe(const char* dir, double& aqtime)
 
 
 
-double Gator::GatorCalib::peakFitFuncA(double* x, double* par){
+double GatorCalib::peakFitFuncA(double* x, double* par){
 	
 	double E,P,T,A,sigma,beta,S,C;
 	
@@ -852,7 +862,7 @@ double Gator::GatorCalib::peakFitFuncA(double* x, double* par){
 //////////////////////////////////////////////////////////////////////////////////
 
 
-double Gator::GatorCalib::peakFitFuncB(double* x, double* par){
+double GatorCalib::peakFitFuncB(double* x, double* par){
 	
 	double E,P,T,A,sigma,Gamma,S,C;
 	
@@ -883,7 +893,7 @@ double Gator::GatorCalib::peakFitFuncB(double* x, double* par){
 
 //----------Initialization functions for parameters-----------//
 
-void Gator::GatorCalib::costInit(TH1D* histo, CalibLine& line){
+void GatorCalib::costInit(TH1D* histo, CalibLine& line){
 	
 	Double_t firstbin = histo->FindBin(line.MCAlowch); 
 	Double_t lastbin = histo->FindBin(line.MCAupch);
@@ -906,7 +916,7 @@ void Gator::GatorCalib::costInit(TH1D* histo, CalibLine& line){
 //////////////////////////////////////////////////////////////////////////////////////
 
 
-void Gator::GatorCalib::stepInit(TH1D* histo, CalibLine& line){
+void GatorCalib::stepInit(TH1D* histo, CalibLine& line){
 	
 	Double_t firstbin = histo->FindBin(line.MCAlowch); 
 	Double_t lastbin = histo->FindBin(line.MCAupch);
@@ -933,7 +943,7 @@ void Gator::GatorCalib::stepInit(TH1D* histo, CalibLine& line){
 /////////////////////////////////////////////////////////////////////////////////////
 
 
-void Gator::GatorCalib::amplInit(TH1D* histo, CalibLine& line){
+void GatorCalib::amplInit(TH1D* histo, CalibLine& line){
 	//This should always be run after the function "costInit"
 	double max =0.;
 	
@@ -952,7 +962,7 @@ void Gator::GatorCalib::amplInit(TH1D* histo, CalibLine& line){
 //////////////////////////////////////////////////////////////////////////////////////
 
 
-void Gator::GatorCalib::sigmaInit(TH1D* histo, CalibLine& line){
+void GatorCalib::sigmaInit(TH1D* histo, CalibLine& line){
 	
 	Double_t firstbin = histo->FindBin(line.MCAlowch); 
 	Double_t lastbin = histo->FindBin(line.MCAupch);

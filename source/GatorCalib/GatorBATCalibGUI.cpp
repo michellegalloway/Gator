@@ -77,16 +77,16 @@ int main(int argc, char* argv[]){
 			break;
 			
 			default:
-		cout << endl << argv[0] << ":ERROR --> \"-" << c << " doesn't match with any option!!!" << endl << endl;
-		usage();
-		  return 0;
-	  }
-    }
+			cout << endl << argv[0] << ":ERROR --> \"-" << c << " doesn't match with any option!!!" << endl << endl;
+			usage();
+			return 0;
+		}
+	}
 	
 	
 	if(guimode)
 	{
-		new Gator::GatorCalibGUI;
+		GatorCalibGUI* obj = new GatorCalibGUI;
 		theApp->Run();
 		return 0;
 	}

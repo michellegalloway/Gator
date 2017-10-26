@@ -266,9 +266,9 @@ int main(int argc, char* argv[]){
 
 void usage(){
 	
-	cout << '\nUsage:' << endl;
-	cout << 'GatorFinalCalib <-d dataset>\n' << endl;
-	cout << 'Note: a file named "fittedlines.root" (generated with "GatorBATCalib" prgram) should be present in the directory "' << archivedir << '/dataset".\n' << endl;
+	cout << "\nUsage:" << endl;
+	cout << "GatorFinalCalib <-d dataset>\n" << endl;
+	cout << "Note: a file named \"fittedlines.root\" (generated with \"GatorBATCalib\" prgram) should be present in the directory \"" << archivedir << "/dataset\".\n" << endl;
 	
 	return;
 }

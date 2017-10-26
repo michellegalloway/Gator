@@ -1,4 +1,5 @@
 #include "GatorGlobals.hh"
+//#include "GatorCalibClass.hh"
 #include "trigrate.hh"
 
 #include <cstdlib>
@@ -46,6 +47,8 @@ using namespace std;
 
 TApplication *theApp;
 
+
+#if !defined(__CLING__)
 int main(int argc, char** argv){
 	
 	string SPEdir;
@@ -139,5 +142,6 @@ int main(int argc, char** argv){
 		c1->SaveAs((OutDir+string("trigrate_plot.root")).c_str());
 	}
 	
-	return 0;		
+	return 0;
 }
+#endif
